@@ -1,4 +1,4 @@
-import ancdata.odata as odata
+import odata
 
 
 def test_odata():
