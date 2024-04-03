@@ -1,0 +1,8 @@
+<config>
+    <setting name="norkyst_path">https://thredds.met.no/thredds/fileServer/fou-hi/norkyst800m-1h</setting>
+    <setting name="norkyst_prefile">NorKyst-800m_ZDEPTHS_his.an</setting>
+    <setting name="norkyst_output">/home/froded/data/coscaw</setting>
+    <setting name="met_nordic_path">https://thredds.met.no/thredds/fileServer/metpparchivev3</setting>
+    <setting name="met_nordic_prefile">met_analysis_1_0km_nordic</setting>
+    <setting name="met_nordic_output">/home/froded/data/coscaw</setting>
+</config>
