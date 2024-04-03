@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 
 NoData = -1
 
-config_file = '../ancdata/config.xml'
+config_file = './config.xml'
 
 def get_odap(sar_filename):
     """
