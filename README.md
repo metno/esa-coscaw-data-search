@@ -1,3 +1,6 @@
+[![pytest](https://github.com/metno/esa-coscaw-data-search/actions/workflows/pytest.yml/badge.svg)](https://github.com/metno/esa-coscaw-data-search/actions/workflows/pytest.yml)
+[![codecov](https://codecov.io/gh/metno/esa-coscaw-data-search/branch/main/graph/badge.svg)](https://codecov.io/gh/metno/esa-coscaw-data-search)
+
 # esa-coscaw-data-search
 Tools to find data to be used in ESA COSCaW
 
