@@ -1,8 +1,25 @@
+"""
+Collocation : Collocation module tests
+======================================
+
+Copyright 2021 MET Norway
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import pytest
 
 from collocation.with_sar import get_odap
 from collocation.with_sar import _get_sar_date
-from collocation.with_sar import _read_config
 
 
 @pytest.mark.core
@@ -32,13 +49,3 @@ def test__get_sar_date():
                   "S1B_IW_RAW__0SDV_20190107T171737_20190107T171810_014391_01AC8B_78F4.zip")
     sd = _get_sar_date(s1filename)
     assert "%04d%02d%02dT%02d" % (sd.year, sd.month, sd.day, sd.hour) == "20190107T17"
-
-
-@pytest.mark.core
-def test__read_config():
-    """ Test for reading config from xml file """
-    conf_file = "ancdata/config.xml"
-    config = _read_config(conf_file)
-    assert config["norkyst_path"] == \
-        "https://thredds.met.no/thredds/fileServer/fou-hi/norkyst800m-1h"
-    assert config["met_nordic_path"] == "https://thredds.met.no/thredds/fileServer/metpparchivev3"
