@@ -24,11 +24,12 @@ import pytest
 #       the current source tree
 sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
-from collocation.config import Config
+from collocation.config import Config  # noqa: E402
 
 ##
 #  Directory Fixtures
 ##
+
 
 @pytest.fixture(scope="session")
 def rootDir():
@@ -46,6 +47,7 @@ def filesDir():
 ##
 #  Objects
 ##
+
 
 @pytest.fixture(scope="function")
 def tmpConf(monkeypatch):
