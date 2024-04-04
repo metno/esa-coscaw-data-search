@@ -16,3 +16,18 @@ s1filename = '/lustre/storeC-ext/users/coscaw/sentinel-1/2020/01/S1A_IW_RAW__0SD
 norkyst_url, met_nordic_url = collocation.with_sar.get_odap(s1filename)
 
 ```
+
+## Tests
+
+The tests use `pytest`. To run all tests for all modules, run:
+```bash
+python -m pytest -vv
+```
+
+To add coverage, and to optionally generate a coverage report in HTML, run:
+```bash
+python -m pytest -vv --cov=dmci --cov-report=term-missing --cov-report=html
+```
+Coverage requires the `pytest-cov` package.
+
+
