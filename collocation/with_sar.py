@@ -1,9 +1,11 @@
-#!/usr/bin/env python3
-import os, sys
+import os
+import sys
 import subprocess
+
+import xml.etree.ElementTree as ET
+
 from datetime import datetime
 from dateutil.parser import parse
-import xml.etree.ElementTree as ET
 
 NoData = -1
 
