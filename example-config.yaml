@@ -1,0 +1,9 @@
+norkyst:
+  url: https://thredds.met.no/thredds/fileServer/fou-hi/norkyst800m-1h
+  prefile: NorKyst-800m_ZDEPTHS_his.an
+  output_path: /home/froded/data/coscaw
+
+met-nordic:
+  url: https://thredds.met.no/thredds/fileServer/metpparchivev3
+  prefile: met_analysis_1_0km_nordic
+  output_path: /home/froded/data/coscaw
