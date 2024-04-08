@@ -67,7 +67,7 @@ def _get_norkyst_url(sar_date):
     through https://data.met.no
     """
     # Construct url
-    url_path = "https://thredds.met.no/thredds/fileServer/fou-hi/norkyst800m-1h"
+    url_path = "https://thredds.met.no/thredds/dodsC/fou-hi/norkyst800m-1h"
     url_file = "NorKyst-800m_ZDEPTHS_his.an.%04d%02d%02d00.nc" % (sar_date.year, sar_date.month,
                                                                   sar_date.day)
     norkyst_url = os.path.join(url_path, url_file)
@@ -78,7 +78,7 @@ def _get_norkyst_url(sar_date):
 def _get_met_nordic_url(sar_date):
     """TODO: Add docstring
     """
-    url_path = "https://thredds.met.no/thredds/fileServer/metpparchivev3"
+    url_path = "https://thredds.met.no/thredds/dodsC/metpparchivev3"
     url_file = "met_analysis_1_0km_nordic"
     datetimeStr = "%04d%02d%02dT%02d" % (sar_date.year, sar_date.month, sar_date.day,
                                          sar_date.hour)
