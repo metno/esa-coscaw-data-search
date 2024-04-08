@@ -36,9 +36,9 @@ def test_get_odap():
     # Call odata to get url for matching model data
     norkyst_url, met_nordic_url = get_odap(s1filename)
 
-    assert norkyst_url == ("https://thredds.met.no/thredds/fileServer/fou-hi/"
+    assert norkyst_url == ("https://thredds.met.no/thredds/dodsC/fou-hi/"
                            "norkyst800m-1h/NorKyst-800m_ZDEPTHS_his.an.2019010700.nc")
-    assert met_nordic_url == ("https://thredds.met.no/thredds/fileServer/metpparchivev3/"
+    assert met_nordic_url == ("https://thredds.met.no/thredds/dodsC/metpparchivev3/"
                               "2019/01/07/met_analysis_1_0km_nordic_20190107T17Z.nc")
 
 
