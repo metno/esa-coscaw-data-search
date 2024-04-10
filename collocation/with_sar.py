@@ -21,6 +21,55 @@ import os
 from dateutil.parser import parse
 
 
+class Collocate:
+    """ Given a SAR dataset, find the closest dataset in time and
+    space of the given type.
+
+    Input
+    =====
+    sar_url : string
+        OPeNDAP url to the file, or optionally the path to a local
+        file.
+    """
+    sar_url = None
+    time = None
+    url = None
+    polygon = None
+
+
+    def __init__(self, sar_url):
+
+        self.sar_url = sar_url
+
+        # Read location of SAR dataset
+
+
+        # Set intersecting polygon
+
+
+    def _get_sar_date(sar_filename):
+        """ Set the central time of collocation, i.e., the time of
+        the SAR dataset.
+        """
+        fname = os.path.basename(self.sar_url)
+        # Read time of SAR dataset
+        date_string = fname.split("_")[5]
+
+        # Set central time of collocation
+        self.time = parse(date_string)
+
+
+    def search_csw(endpoint="https://data.csw.met.no"):
+        """ Uses time, polygon and optional text to find collocated
+        dataset(s).
+        """
+
+    def get_url(self):
+        """ Returns the OPeNDAP url to the found dataset.
+        """
+        return self.url
+
+
 def get_odap(sar_filename):
     """A function for getting ocean (NorKyst800) and atmospheric
     (met_nordic) model data matching the date of the input Sentinel-1
@@ -88,12 +137,3 @@ def _get_met_nordic_url(sar_date):
     return met_nordic_url
 
 
-def _get_sar_date(sar_filename):
-    """TODO: Add docstring
-    """
-    fname = os.path.basename(sar_filename)
-    date_string = fname.split("_")[5]
-
-    sar_date = parse(date_string)
-
-    return sar_date
