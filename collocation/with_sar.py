@@ -17,8 +17,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import netCDF4
+import datetime
 
+import numpy as np
+
+from dateutil import tz
 from dateutil.parser import parse
+
+from owslib import fes
+from owslib.csw import CatalogueServiceWeb
 
 
 class Collocate:
@@ -31,23 +39,22 @@ class Collocate:
         OPeNDAP url to the file, or optionally the path to a local
         file.
     """
-    sar_url = None
-    time = None
-    url = None
-    polygon = None
-
 
     def __init__(self, sar_url):
 
         self.sar_url = sar_url
 
-        # Read location of SAR dataset
+        self.time = None
+        self.polygon = None
+        self.conn_csw = None
 
+        self._set_sar_date()
+
+        # Read location of SAR dataset
 
         # Set intersecting polygon
 
-
-    def _get_sar_date(sar_filename):
+    def _set_sar_date(self):
         """ Set the central time of collocation, i.e., the time of
         the SAR dataset.
         """
@@ -56,18 +63,206 @@ class Collocate:
         date_string = fname.split("_")[5]
 
         # Set central time of collocation
-        self.time = parse(date_string)
+        time = parse(date_string)
+        self.time = time.replace(tzinfo=time.tzinfo or tz.gettz("UTC"))
 
+    def search_csw(self, constraints=None, dt=0.5, endpoint="https://data.csw.met.no"):
+        """ Uses SAR time, plus other provided constraints (optional)
+        to find collocated dataset(s).
 
-    def search_csw(endpoint="https://data.csw.met.no"):
-        """ Uses time, polygon and optional text to find collocated
-        dataset(s).
+        Note: owslib seems to be limited to bbox search based on
+        squares in lat/lon... Spatial search should be based on border
+        polygon, and is therefore omitted but should be added.
+
+        TODO: ADD SPATIAL SEARCH
+
+        Input
+        =====
+        constraints : list
+            List of CSW search objects defining other constraints.
+        dt : float
+            Allowed time from SAR acquisition start time (hours)
         """
+        if constraints is None:
+            constraints = []
 
-    def get_url(self):
-        """ Returns the OPeNDAP url to the found dataset.
+        # Create temporal search objects
+        start = self.time - datetime.timedelta(hours=dt)
+        end = self.time + datetime.timedelta(hours=dt)
+        temporal_search_start, temporal_search_end = self._temporal_filter(start, end)
+
+        # Add temporal search objects to the list of constraints
+        constraints.append(temporal_search_start)
+        constraints.append(temporal_search_end)
+
+        # Search and return dict
+        return self._execute([fes.And(constraints)], pagesize=10, max_records=100,
+                             endpoint=endpoint)
+
+    @staticmethod
+    def get_odap_url(record):
+        """ Return OPeNDAP url of given record.
         """
-        return self.url
+        for scheme in record.references:
+            if "opendap" in scheme["scheme"].lower():
+                url = scheme["url"]
+                break
+        return url
+
+    @staticmethod
+    def get_time_coverage(record):
+        """ Return time_coverage_start and time_coverage_end of the
+        given record converted to datetime.datetime objects.
+
+        Note: the record does not contain proper times (except the
+        date), so we need to read it from OPeNDAP - or don't we?
+        """
+        odap = Collocate.get_odap_url(record)
+        ds = netCDF4.Dataset(odap)
+        start = parse(ds.time_coverage_start)
+        end = parse(ds.time_coverage_end)
+        ds.close()
+
+        return start, end
+
+    def _get_nearest_by_time(self, records, index):
+        """ Returns the record that is closest to self.time by given
+        index. The index indicates either time_coverage_start (0) or
+        time_coverage_end (1).
+        """
+        times = np.array([])
+        keys = []
+        for key, record in records.items():
+            tt = Collocate.get_time_coverage(record)
+            times = np.append(times, tt[index])
+            keys.append(key)
+
+        return records[keys[(times-self.time).argmin()]]
+
+    def get_nearest_collocation_by_time_coverage_start(self, records):
+        """ Returns the record that has time_coverage_start closest to
+        self.time.
+        """
+        return self._get_nearest_by_time(records, 0)
+
+    def get_nearest_collocation_by_time_coverage_end(self, records):
+        """ Returns the record that has time_coverage_end closest to
+        self.time.
+        """
+        return self._get_nearest_by_time(records, 1)
+
+    def _execute(self, filter_list, pagesize=10, max_records=100,
+                 endpoint="https://data.csw.met.no"):
+        """ Execute CSW search using the provided filter list, and
+        return a dictionary of all the resulting records. Limit the
+        number of retrieved records using the keyword max_records.
+        """
+        csw_records = {}
+        start_position = 0
+
+        # Connect to the CSW service
+        self._set_csw_connection(endpoint=endpoint)
+
+        next_record = 1
+        while next_record != 0:
+            # Iterate pages until the requested max_records is reached
+            self.conn_csw.getrecords2(
+                constraints=filter_list,
+                startposition=start_position,
+                maxrecords=pagesize,
+                outputschema="http://www.opengis.net/cat/csw/2.0.2",
+                esn='full')
+            csw_records.update(self.conn_csw.records)
+            next_record = self.conn_csw.results["nextrecord"]
+            start_position += pagesize + 1  # Last one is included.
+            if start_position >= max_records:
+                next_record = 0
+
+        return csw_records
+
+    @staticmethod
+    def _temporal_filter(start, stop):
+        """ Take datetime-like objects and return a fes filter for
+        date range.
+
+        Input
+        =====
+        start : datetime.datetime
+            Start time of search interval
+        stop : datetime.datetime
+            End time of search interval
+        """
+        start = (start+datetime.timedelta(hours=66)).strftime("%Y-%m-%d %H:%M:%S")
+        stop = (stop+datetime.timedelta(hours=66)).strftime("%Y-%m-%d %H:%M:%S")
+
+        propertyname = "apiso:TempExtent_begin"
+        begin = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=stop)
+        #begin = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=start)
+        propertyname = "apiso:TempExtent_end"
+        end = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=start)
+        #end = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=stop)
+
+        return begin, end
+
+    def _get_title_search(self, text):
+        """ Return CSW search object for title search.
+        """
+        property_name = "dc:title"
+        return self._get_prop_search(text, property_name)
+
+    def _get_free_text_search(self, text):
+        """ Return CSW search object based on any match with the input
+        string.
+        """
+        property_name = "csw:AnyText"
+        return self._get_prop_search(text, property_name)
+
+    def _get_prop_search(self, text, property_name):
+        """ Return CSW search object for given property and text.
+        """
+        return fes.PropertyIsLike(property_name, literal=text, escapeChar='\\', singleChar='_',
+                                  wildCard='%', matchCase=True)
+
+    def _set_csw_connection(self, endpoint="https://data.csw.met.no"):
+        """ Sets connection to OGC CSW service.
+        """
+        self.conn_csw = CatalogueServiceWeb(endpoint, timeout=60)
+
+
+class AromeArctic(Collocate):
+    """ Class for collocating Arome-Arctic weather forecasts with
+    Sentinel-1 SAR datasets.
+    """
+
+    def __init__(self, sar_url):
+        super().__init__(sar_url)
+
+    def get_collocations(self, subset="deterministic", *args, **kwargs):
+        """ Returns Arome-Arctic records collocated with the dataset
+        given by sar_url.
+        """
+        subsets = {
+            "deterministic": "Arome-Arctic 2.5Km deterministic",
+            "lagged subset": "Arome-Arctic 2.5Km lagged subset",
+            "lagged vc": "Arome-Arctic 2.5Km lagged vc",
+            "lagged tracking": "Arome-Arctic 2.5Km lagged tracking",
+        }
+        constraints = []
+        #constraints.append(self._get_title_search("Arome-Arctic")) # this does not work
+        constraints.append(self._get_free_text_search(subsets[subset]))
+        #constraints.append(self._get_title_search(subset))
+        return self.search_csw(constraints, *args, **kwargs)
+
+
+def _get_sar_date(sar_filename):
+    """TODO: Add docstring
+    """
+    fname = os.path.basename(sar_filename)
+    date_string = fname.split("_")[5]
+
+    sar_date = parse(date_string)
+
+    return sar_date
 
 
 def get_odap(sar_filename):
@@ -135,5 +330,3 @@ def _get_met_nordic_url(sar_date):
                                                       sar_date.day, url_file, datetimeStr)
 
     return met_nordic_url
-
-
