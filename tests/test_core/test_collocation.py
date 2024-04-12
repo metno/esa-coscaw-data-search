@@ -59,13 +59,13 @@ def testCollocate__execute(s1filename, monkeypatch):
 
 
 @pytest.mark.core
-def testCollocate_search_csw(s1filename, monkeypatch):
-    """ Test that search_csw returns a dict of records.
+def testCollocate_get_collocations(s1filename, monkeypatch):
+    """ Test that get_collocations returns a dict of records.
     """
     with monkeypatch.context() as mp:
         mp.setattr("collocation.with_sar.CatalogueServiceWeb", MockCSW)
         coll = Collocate(s1filename)
-        records = coll.search_csw()
+        records = coll.get_collocations()
         assert records["dataset"] == "long xml string"
 
 

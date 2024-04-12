@@ -66,7 +66,7 @@ class Collocate:
         time = parse(date_string)
         self.time = time.replace(tzinfo=time.tzinfo or tz.gettz("UTC"))
 
-    def search_csw(self, constraints=None, endpoint="https://data.csw.met.no"):
+    def get_collocations(self, constraints=None, endpoint="https://data.csw.met.no"):
         """ Uses SAR time, plus other provided constraints (optional)
         to find collocated dataset(s).
 
@@ -191,10 +191,10 @@ class Collocate:
 
         propertyname = "apiso:TempExtent_begin"
         begin = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=time)
-        #begin = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=start)
+        #begin = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=time)
         propertyname = "apiso:TempExtent_end"
         end = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=time)
-        #end = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=stop)
+        #end = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=time)
 
         return begin, end
 
@@ -245,7 +245,7 @@ class AromeArctic(Collocate):
         #constraints.append(self._get_title_search("Arome-Arctic")) # this does not work
         constraints.append(self._get_free_text_search(subsets[subset]))
         #constraints.append(self._get_title_search(subset))
-        return self.search_csw(constraints, *args, **kwargs)
+        return super().get_collocations(constraints, *args, **kwargs)
 
 
 def _get_sar_date(sar_filename):
