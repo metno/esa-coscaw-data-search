@@ -191,6 +191,8 @@ class Collocate:
         The time delta can be increased through the keyword dt but
         should not be less than 24 hours.
 
+        TODO: check and fix issues with temporal search!
+
         Input
         =====
         dt : int
