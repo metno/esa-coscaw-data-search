@@ -24,9 +24,31 @@ from dateutil import tz
 from dateutil.parser import parse
 
 from collocation.with_sar import Collocate
+from collocation.with_sar import METNordic
+from collocation.with_sar import NorKyst800
+from collocation.with_sar import AromeArctic
+from collocation.with_sar import Meps
+from collocation.with_sar import WeatherForecast
 
-from collocation.with_sar import get_odap
-from collocation.with_sar import _get_sar_date
+
+refs = [
+    {
+        "scheme": "OPENDAP:OPENDAP",
+        "url": ("https://thredds.met.no/thredds/dodsC/meps25epsarchive/2024/04/06/10/"
+                "meps_mbr007_sfc_20240406T10Z.ncml")
+    },
+    {
+        "scheme": "OGC:WMS",
+        "url": ("https://fastapi.s-enda.k8s.met.no/api/get_quicklook/2024/04/06/10/"
+                "meps_mbr007_sfc_20240406T10Z.ncml?service=WMS&version=1.3.0&request"
+                "=GetCapabilities?SERVICE=WMS&REQUEST=GetCapabilities")
+    },
+    {
+        "scheme": "WWW:DOWNLOAD-1.0-http--download",
+        "url": ("https://thredds.met.no/thredds/fileServer/meps25epsarchive/2024/04/"
+                "06/10/meps_mbr007_sfc_20240406T10Z.ncml")
+    }
+]
 
 
 class MockCSW:
@@ -37,9 +59,15 @@ class MockCSW:
         return None
 
     def getrecords2(self, *args, **kwargs):
+        class Record:
+            pass
+        rec1 = Record()
+        rec1.references = refs
+        rec2 = Record()
+        rec2.references = refs
         self.records = {
-            "dataset": "long xml string",
-            "dataset2": "long xml string 2",
+            "rec1": rec1,
+            "rec2": rec2,
         }
         # Force while loop to continue until
         # start_position >= max_records:
@@ -55,7 +83,20 @@ def testCollocate__execute(s1filename, monkeypatch):
         mp.setattr("collocation.with_sar.CatalogueServiceWeb", MockCSW)
         coll = Collocate(s1filename)
         records = coll._execute([])
-        assert records["dataset"] == "long xml string"
+        assert records["rec1"].references == refs
+
+
+@pytest.mark.core
+def testCollocate_get_odap_url_of_nearest(s1filename, csw_records, monkeypatch):
+    """ Test that the nearest record in time_coverage_start has the
+    correct opendap url.
+    """
+    with monkeypatch.context() as mp:
+        mp.setattr("collocation.with_sar.CatalogueServiceWeb", MockCSW)
+        coll = Collocate(s1filename)
+        tt = coll.get_odap_url_of_nearest()
+        assert tt == ("https://thredds.met.no/thredds/dodsC/meps25epsarchive/2024/04/06/10/"
+                      "meps_mbr007_sfc_20240406T10Z.ncml")
 
 
 @pytest.mark.core
@@ -66,7 +107,7 @@ def testCollocate_get_collocations(s1filename, monkeypatch):
         mp.setattr("collocation.with_sar.CatalogueServiceWeb", MockCSW)
         coll = Collocate(s1filename)
         records = coll.get_collocations()
-        assert records["dataset"] == "long xml string"
+        assert records["rec1"].references == refs
 
 
 @pytest.mark.core
@@ -110,7 +151,7 @@ def testCollocate_search_functions(s1filename):
     assert ss.toXML().getchildren()[0].text == "csw:AnyText"
     assert ss.toXML().getchildren()[1].text == "whatever"
     start, end = coll._temporal_filter()
-    assert start.toXML().getchildren()[1].text == "2019-01-07 17:17:37"
+    assert start.toXML().getchildren()[1].text == "2019-01-08 17:17:37"
 
 
 @pytest.mark.core
@@ -173,25 +214,65 @@ def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monke
         assert tt == csw_records["rec1"]
 
 
+
+
 @pytest.mark.core
-def test_get_odap(s1filename):
-    """ Test to find ocean and NWP model data matching Sentinel-1 file
-    name.
+def testNorKyst800(s1filename, monkeypatch):
+    """ Test NorKyst800.
     """
+    with monkeypatch.context() as mp:
+        mp.setattr("collocation.with_sar.CatalogueServiceWeb", MockCSW)
+        coll = NorKyst800(s1filename)
+        records = coll.get_collocations()
+        assert records["rec1"].references == refs
 
-    # Call odata to get url for matching model data
-    norkyst_url, met_nordic_url = get_odap(s1filename)
+    url = coll.get_odap_url_of_nearest()
+    assert url == ("https://thredds.met.no/thredds/dodsC/fou-hi/"
+                   "norkyst800m-1h/NorKyst-800m_ZDEPTHS_his.an.2019010700.nc")
 
-    assert norkyst_url == ("https://thredds.met.no/thredds/dodsC/fou-hi/"
-                           "norkyst800m-1h/NorKyst-800m_ZDEPTHS_his.an.2019010700.nc")
-    assert met_nordic_url == ("https://thredds.met.no/thredds/dodsC/metpparchivev3/"
-                              "2019/01/07/met_analysis_1_0km_nordic_20190107T17Z.nc")
+
+    #records = coll.get_collocations
 
 
 @pytest.mark.core
-def test__get_sar_date():
-    """ Test for reading date from filename """
-    s1filename = ("sentinel-1/"
-                  "S1B_IW_RAW__0SDV_20190107T171737_20190107T171810_014391_01AC8B_78F4.zip")
-    sd = _get_sar_date(s1filename)
-    assert "%04d%02d%02dT%02d" % (sd.year, sd.month, sd.day, sd.hour) == "20190107T17"
+def testMeps(s1filename, csw_records, monkeypatch):
+    """ Test Meps
+    """
+    with monkeypatch.context() as mp:
+        mp.setattr("collocation.with_sar.CatalogueServiceWeb", MockCSW)
+        coll = Meps(s1filename)
+        records = coll.get_collocations()
+        assert records["rec1"].references == refs
+
+
+@pytest.mark.core
+def testAromeArctic(s1filename, monkeypatch):
+    """ Test AromeArctic
+    """
+    with monkeypatch.context() as mp:
+        mp.setattr("collocation.with_sar.CatalogueServiceWeb", MockCSW)
+        coll = AromeArctic(s1filename)
+        records = coll.get_collocations()
+        assert records["rec1"].references == refs
+
+
+@pytest.mark.core
+def testMETNordic(s1filename, monkeypatch):
+    """ Test METNordic
+    """
+    with monkeypatch.context() as mp:
+        mp.setattr("collocation.with_sar.CatalogueServiceWeb", MockCSW)
+        coll = METNordic(s1filename)
+        records = coll.get_collocations()
+        assert records["rec1"].references == refs
+
+    coll = METNordic(s1filename)
+    url = coll.get_odap_url_of_nearest()
+    assert url == ("https://thredds.met.no/thredds/dodsC/metpparchivev3/"
+                   "2019/01/07/met_analysis_1_0km_nordic_20190107T17Z.nc")
+
+
+@pytest.mark.core
+def testWeatherForecast(s1filename):
+    with pytest.raises(NotImplementedError):
+        coll = WeatherForecast(s1filename)

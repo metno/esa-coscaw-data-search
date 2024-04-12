@@ -94,8 +94,7 @@ class Collocate:
         constraints.append(temporal_search_end)
 
         # Search and return dict
-        return self._execute([fes.And(constraints)], pagesize=10, max_records=100,
-                             endpoint=endpoint)
+        return self._execute([fes.And(constraints)], endpoint=endpoint)
 
     @staticmethod
     def get_odap_url(record):
@@ -149,7 +148,15 @@ class Collocate:
         """
         return self._get_nearest_by_time(records, 1)
 
-    def _execute(self, filter_list, pagesize=10, max_records=100,
+    def get_odap_url_of_nearest(self, *args, **kwargs):
+        """ Returns the OPeNDAP url of the nearest collocated
+        dataset.
+        """
+        records = self.get_collocations(*args, **kwargs)
+        nearest = self.get_nearest_collocation_by_time_coverage_start(records)
+        return Collocate.get_odap_url(nearest)
+
+    def _execute(self, filter_list, pagesize=10, max_records=1000,
                  endpoint="https://data.csw.met.no"):
         """ Execute CSW search using the provided filter list, and
         return a dictionary of all the resulting records. Limit the
@@ -183,13 +190,13 @@ class Collocate:
         date range.
 
         NOTE: the "begin" search seems to be performed on the date of
-        each record, not the actual time_coverage_start or
-        time_coverage_end. This appear to be a bug in pycsw. The "end"
-        search seems to correctly represent time_coverage_end. Also,
-        it seems that the "OrEqual" requirement doesn't come into
-        effect. We need to search +/- 1 day in order to get anything.
-        The time delta can be increased through the keyword dt but
-        should not be less than 24 hours.
+        each record (the dataset publication_date), not the actual
+        time_coverage_start or time_coverage_end. This appear to be a
+        bug in pycsw. The "end" search seems to correctly represent
+        time_coverage_end. Also, it seems that the "OrEqual"
+        requirement doesn't come into effect. We need to search +/- 1
+        day in order to get anything. The time delta can be increased
+        through the keyword dt but should not be less than 24 hours.
 
         TODO: check and fix issues with temporal search!
 
@@ -238,7 +245,7 @@ class Collocate:
 
 class AromeArctic(Collocate):
     """ Class for collocating Arome-Arctic weather forecasts with
-    Sentinel-1 SAR datasets.
+    another dataset.
     """
 
     def __init__(self, sar_url):
@@ -261,79 +268,99 @@ class AromeArctic(Collocate):
         return super().get_collocations(constraints, *args, **kwargs)
 
 
-def _get_sar_date(sar_filename):
-    """TODO: Add docstring
-    """
-    fname = os.path.basename(sar_filename)
-    date_string = fname.split("_")[5]
-
-    sar_date = parse(date_string)
-
-    return sar_date
-
-
-def get_odap(sar_filename):
-    """A function for getting ocean (NorKyst800) and atmospheric
-    (met_nordic) model data matching the date of the input Sentinel-1
-    data. The date is extracted from the Sentinel-1 filename. The
-    filename is expected to be on the form
-    "S1B_IW_RAW__0SDV_20190107T171737_20190107T171810_014391_01AC8B_78F4.zip",
-    where element 20190107T171737 will be used as search date.
-
-    Parameters
-    -----------
-    sar_filename : string
-        The SAR image as a filename
-
-    Returns:
-    ---------
-    norkyst_url : string
-        The OPeNDAP url to Norkyst800 data
-
-    met_nordic_url : string
-        The OPeNDAP url to MET Nordic data
-
-    Example:
-        norkyst_url, met_nordic_url =
-            get_odap("S1B_IW_RAW__0SDV_20190107T171737_20190107T171810_014391_01AC8B_78F4.zip")
+class Meps(Collocate):
+    """ Class for collocating Meps weather forecasts with another
+    dataset.
     """
 
-    # Get sar datetime from filename
-    sar_date = _get_sar_date(sar_filename)
+    def __init__(self, ds_url):
+        super().__init__(ds_url)
 
-    # Get url for ocean model
-    norkyst_url = _get_norkyst_url(sar_date)
+    def get_collocations(self, subset="surface", *args, **kwargs):
+        """ Returns weather forecast records collocated with the dataset
+        given by sar_url. The title search is limited to control
+        members only.
+        """
+        subsets = {
+            "model level": "Meps 2.5 km deterministic model level parameters",
+            "pressure level": "Meps 2.5 km deterministic pressure level parameters",
+            "surface": "Meps 2.5 km deterministic surface parameters",
+            "height level": "Meps 2.5 km deterministic height level parameters",
+        }
+        constraints = []
+        #constraints.append(self._get_title_search(subsets[subset])) # this does not work
+        constraints.append(self._get_free_text_search(subsets[subset]))
+        return super().get_collocations(constraints, *args, **kwargs)
 
-    # Get url for NWP model
-    met_nordic_url = _get_met_nordic_url(sar_date)
 
-    return norkyst_url, met_nordic_url
-
-
-def _get_norkyst_url(sar_date):
-    """ Returns the OPeNDAP url to a Norkyst800 dataset.
-
-    The function currently uses a hardcoded url pattern but this
-    should be replaced by a CSW search once the data is available
-    through https://data.met.no
+class METNordic(Collocate):
+    """ Class for collocating MET Nordic weather analyses and
+    forecasts with another dataset.
     """
-    # Construct url
-    url_path = "https://thredds.met.no/thredds/dodsC/fou-hi/norkyst800m-1h"
-    url_file = "NorKyst-800m_ZDEPTHS_his.an.%04d%02d%02d00.nc" % (sar_date.year, sar_date.month,
-                                                                  sar_date.day)
-    norkyst_url = os.path.join(url_path, url_file)
 
-    return norkyst_url
+    def __init__(self, ds_url):
+        super().__init__(ds_url)
+
+    def get_collocations(self, *args, **kwargs):
+        return super().get_collocations(*args, **kwargs)
+
+    def get_odap_url_of_nearest(self):
+        """ Returns the OPeNDAP url to a MET Nordic dataset.
+
+        The function currently uses a hardcoded url pattern but this
+        should be replaced by a CSW search using get_collocations
+        function once the data is available through
+        https://data.met.no.
+        """
+        url_path = "https://thredds.met.no/thredds/dodsC/metpparchivev3"
+        url_file = "met_analysis_1_0km_nordic"
+        datetimeStr = "%04d%02d%02dT%02d" % (self.time.year, self.time.month, self.time.day,
+            self.time.hour)
+        met_nordic_url = "%s/%04d/%02d/%02d/%s_%sZ.nc" % (url_path, self.time.year,
+            self.time.month, self.time.day, url_file, datetimeStr)
+
+        return met_nordic_url
 
 
-def _get_met_nordic_url(sar_date):
-    """TODO: Add docstring
+class WeatherForecast(Collocate):
+    """ Class for collocating weather forecasts with another dataset.
+
+    TODO: we need to add a proper geographical search based on polygon
+    for this to work. In addition, the polygons must be added to the
+    metadata files at data.met.no
     """
-    url_path = "https://thredds.met.no/thredds/dodsC/metpparchivev3"
-    url_file = "met_analysis_1_0km_nordic"
-    datetimeStr = "%04d%02d%02dT%02d" % (sar_date.year, sar_date.month, sar_date.day,
-                                         sar_date.hour)
-    met_nordic_url = "%s/%04d/%02d/%02d/%s_%sZ.nc" % (url_path, sar_date.year, sar_date.month,
-                                                      sar_date.day, url_file, datetimeStr)
 
-    return met_nordic_url
+    def __init__(self, ds_url):
+        raise NotImplementedError(
+            "We need to add a proper geographical search based on "
+            "polygons for this to work. In addition, the polygons "
+            "must be added to the metadata files at data.met.no.")
+        #super().__init__(ds_url)
+
+
+class NorKyst800(Collocate):
+    """ Class for collocating NorKyst800 ocean forecasts with another
+    dataset.
+    """
+
+    def __init__(self, ds_url):
+        super().__init__(ds_url)
+
+    def get_collocations(self, *args, **kwargs):
+        return super().get_collocations(*args, **kwargs)
+
+    def get_odap_url_of_nearest(self):
+        """ Returns the OPeNDAP url to a Norkyst800 dataset.
+
+        The function currently uses a hardcoded url pattern but this
+        should be replaced by a CSW search using get_collocations
+        function once the data is available through
+        https://data.met.no.
+        """
+        # Construct url
+        url_path = "https://thredds.met.no/thredds/dodsC/fou-hi/norkyst800m-1h"
+        url_file = "NorKyst-800m_ZDEPTHS_his.an.%04d%02d%02d00.nc" % (self.time.year,
+            self.time.month, self.time.day)
+        norkyst_url = os.path.join(url_path, url_file)
+
+        return norkyst_url
