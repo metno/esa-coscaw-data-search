@@ -84,6 +84,12 @@ class MockNcDataset:
         return None
 
 
+class Fail:
+
+    def __init__(self, *args, **kwargs):
+        raise OSError
+
+
 @pytest.mark.core
 def testCollocate__execute(s1filename, monkeypatch):
     """ Test that the csw connection is called, and that the function
@@ -95,6 +101,22 @@ def testCollocate__execute(s1filename, monkeypatch):
         coll = Collocate(s1filename)
         records = coll._execute([])
         assert records["rec1"].references == refs
+
+
+@pytest.mark.core
+def testCollocate__set_dataset_date(s1filename, monkeypatch):
+    """ Test setting the time
+    """
+    class SelectMock(Mock):
+        pass
+
+    tt = datetime.datetime(2019, 1, 7, 17, 17, 37, tzinfo=tz.gettz("UTC"))
+    with monkeypatch.context() as mp:
+        smock = SelectMock()
+        smock.side_effect = [OSError, MockNcDataset()]
+        mp.setattr("collocation.with_dataset.netCDF4.Dataset", smock)
+        coll = Collocate(s1filename)
+        assert coll.time == tt
 
 
 @pytest.mark.core
@@ -114,6 +136,18 @@ def testCollocate_get_odap_url_of_nearest(s1filename, csw_records, monkeypatch):
         tt = coll.get_odap_url_of_nearest()
         assert tt == ("https://thredds.met.no/thredds/dodsC/meps25epsarchive/2024/04/06/10/"
                       "meps_mbr007_sfc_20240406T10Z.ncml")
+
+
+# This blocks ipdb and does not block opendap access, so it is omitted:
+#   @pytest.mark.core
+#   def test_odap_fails():
+#       url = ("https://thredds.met.no/thredds/dodsC/meps25epsarchive/2024/04/06/10/"
+#              "meps_mbr007_sfc_20240406T10Z.ncml")
+#       with pytest.raises(Exception):
+#           import requests
+#           r = requests.get("https://google.com")
+#           #ds = netCDF4.Dataset(url)
+#           #tt = ds.time_coverage_start
 
 
 @pytest.mark.core

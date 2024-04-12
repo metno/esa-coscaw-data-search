@@ -20,6 +20,14 @@ import os
 import sys
 import pytest
 
+# This does not work for opendap, so it is omitted:
+#   import socket
+#
+#   class block_network(socket.socket):
+#       def __init__(self, *args, **kwargs):
+#           raise Exception("Network call blocked")
+#   socket.socket = block_network
+
 # Note: This line forces the test suite to import the package in
 #       the current source tree
 sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))

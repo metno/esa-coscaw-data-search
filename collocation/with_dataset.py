@@ -52,13 +52,14 @@ class Collocate:
 
         # Read location of SAR dataset
 
-        # Set intersecting polygon
-
     def _set_dataset_date(self):
         """ Set the central time of collocation, i.e., the time of
         the SAR dataset.
         """
-        ds = netCDF4.Dataset(self.url)
+        try:
+            ds = netCDF4.Dataset(self.url)
+        except OSError:
+            ds = netCDF4.Dataset(self.url + "#fillmismatch")
         # Read time of dataset
         date_string = ds.time_coverage_start
 
