@@ -66,7 +66,7 @@ class Collocate:
         time = parse(date_string)
         self.time = time.replace(tzinfo=time.tzinfo or tz.gettz("UTC"))
 
-    def search_csw(self, constraints=None, dt=0.5, endpoint="https://data.csw.met.no"):
+    def search_csw(self, constraints=None, endpoint="https://data.csw.met.no"):
         """ Uses SAR time, plus other provided constraints (optional)
         to find collocated dataset(s).
 
@@ -80,16 +80,12 @@ class Collocate:
         =====
         constraints : list
             List of CSW search objects defining other constraints.
-        dt : float
-            Allowed time from SAR acquisition start time (hours)
         """
         if constraints is None:
             constraints = []
 
         # Create temporal search objects
-        start = self.time - datetime.timedelta(hours=dt)
-        end = self.time + datetime.timedelta(hours=dt)
-        temporal_search_start, temporal_search_end = self._temporal_filter(start, end)
+        temporal_search_start, temporal_search_end = self._temporal_filter()
 
         # Add temporal search objects to the list of constraints
         constraints.append(temporal_search_start)
@@ -180,8 +176,7 @@ class Collocate:
 
         return csw_records
 
-    @staticmethod
-    def _temporal_filter(start, stop):
+    def _temporal_filter(self):
         """ Take datetime-like objects and return a fes filter for
         date range.
 
@@ -192,14 +187,13 @@ class Collocate:
         stop : datetime.datetime
             End time of search interval
         """
-        start = (start+datetime.timedelta(hours=66)).strftime("%Y-%m-%d %H:%M:%S")
-        stop = (stop+datetime.timedelta(hours=66)).strftime("%Y-%m-%d %H:%M:%S")
+        time = self.time.strftime("%Y-%m-%d %H:%M:%S")
 
         propertyname = "apiso:TempExtent_begin"
-        begin = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=stop)
+        begin = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=time)
         #begin = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=start)
         propertyname = "apiso:TempExtent_end"
-        end = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=start)
+        end = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=time)
         #end = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=stop)
 
         return begin, end

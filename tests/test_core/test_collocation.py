@@ -109,9 +109,8 @@ def testCollocate_search_functions(s1filename):
     ss = coll._get_free_text_search("whatever")
     assert ss.toXML().getchildren()[0].text == "csw:AnyText"
     assert ss.toXML().getchildren()[1].text == "whatever"
-    start, end = coll._temporal_filter(coll.time - datetime.timedelta(hours=0.5),
-                                       coll.time + datetime.timedelta(hours=0.5))
-    assert start.toXML().getchildren()[1].text == "2019-01-07 17:47:37"
+    start, end = coll._temporal_filter()
+    assert start.toXML().getchildren()[1].text == "2019-01-07 17:17:37"
 
 
 @pytest.mark.core
