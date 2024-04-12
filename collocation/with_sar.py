@@ -66,7 +66,7 @@ class Collocate:
         time = parse(date_string)
         self.time = time.replace(tzinfo=time.tzinfo or tz.gettz("UTC"))
 
-    def get_collocations(self, constraints=None, endpoint="https://data.csw.met.no"):
+    def get_collocations(self, constraints=None, dt=24, endpoint="https://data.csw.met.no"):
         """ Uses SAR time, plus other provided constraints (optional)
         to find collocated dataset(s).
 
@@ -80,12 +80,14 @@ class Collocate:
         =====
         constraints : list
             List of CSW search objects defining other constraints.
+        dt : int
+            Search interval in hours (+/-)
         """
         if constraints is None:
             constraints = []
 
         # Create temporal search objects
-        temporal_search_start, temporal_search_end = self._temporal_filter()
+        temporal_search_start, temporal_search_end = self._temporal_filter(dt=dt)
 
         # Add temporal search objects to the list of constraints
         constraints.append(temporal_search_start)
@@ -133,7 +135,7 @@ class Collocate:
             times = np.append(times, tt[index])
             keys.append(key)
 
-        return records[keys[(times-self.time).argmin()]]
+        return records[keys[np.abs(times-self.time).argmin()]]
 
     def get_nearest_collocation_by_time_coverage_start(self, records):
         """ Returns the record that has time_coverage_start closest to
@@ -176,24 +178,33 @@ class Collocate:
 
         return csw_records
 
-    def _temporal_filter(self):
+    def _temporal_filter(self, dt=24):
         """ Take datetime-like objects and return a fes filter for
         date range.
 
+        NOTE: the "begin" search seems to be performed on the date of
+        each record, not the actual time_coverage_start or
+        time_coverage_end. This appear to be a bug in pycsw. The "end"
+        search seems to correctly represent time_coverage_end. Also,
+        it seems that the "OrEqual" requirement doesn't come into
+        effect. We need to search +/- 1 day in order to get anything.
+        The time delta can be increased through the keyword dt but
+        should not be less than 24 hours.
+
         Input
         =====
-        start : datetime.datetime
-            Start time of search interval
-        stop : datetime.datetime
-            End time of search interval
+        dt : int
+            Search interval in hours (+/-)
         """
-        time = self.time.strftime("%Y-%m-%d %H:%M:%S")
+        start = (self.time - datetime.timedelta(hours=dt)).strftime("%Y-%m-%d %H:%M:%S")
+        stop = (self.time + datetime.timedelta(hours=dt)).strftime("%Y-%m-%d %H:%M:%S")
 
-        propertyname = "apiso:TempExtent_begin"
-        begin = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=time)
+        propertyname = "apiso:TempExtent_begin" # same as record date?
+        begin = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=stop)
         #begin = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=time)
-        propertyname = "apiso:TempExtent_end"
-        end = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=time)
+        #propertyname = "apiso:TempExtent_end" # same as time_coverage_end?
+        propertyname = "apiso:TempExtent_begin" # search record date only
+        end = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=start)
         #end = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=time)
 
         return begin, end
