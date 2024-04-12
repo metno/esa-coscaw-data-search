@@ -208,13 +208,13 @@ class Collocate:
         start = (self.time - datetime.timedelta(hours=dt)).strftime("%Y-%m-%d %H:%M:%S")
         stop = (self.time + datetime.timedelta(hours=dt)).strftime("%Y-%m-%d %H:%M:%S")
 
-        propertyname = "apiso:TempExtent_begin" # same as record date?
+        propertyname = "apiso:TempExtent_begin"  # same as record date?
         begin = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=stop)
-        #begin = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=time)
-        #propertyname = "apiso:TempExtent_end" # same as time_coverage_end?
-        propertyname = "apiso:TempExtent_begin" # search record date only
+        # begin = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=time)
+        # propertyname = "apiso:TempExtent_end"  # same as time_coverage_end?
+        propertyname = "apiso:TempExtent_begin"  # search record date only
         end = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=start)
-        #end = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=time)
+        # end = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=time)
 
         return begin, end
 
@@ -262,9 +262,8 @@ class AromeArctic(Collocate):
             "lagged tracking": "Arome-Arctic 2.5Km lagged tracking",
         }
         constraints = []
-        #constraints.append(self._get_title_search("Arome-Arctic")) # this does not work
+        # constraints.append(self._get_title_search("Arome-Arctic")) # this does not work
         constraints.append(self._get_free_text_search(subsets[subset]))
-        #constraints.append(self._get_title_search(subset))
         return super().get_collocations(constraints, *args, **kwargs)
 
 
@@ -288,7 +287,7 @@ class Meps(Collocate):
             "height level": "Meps 2.5 km deterministic height level parameters",
         }
         constraints = []
-        #constraints.append(self._get_title_search(subsets[subset])) # this does not work
+        # constraints.append(self._get_title_search(subsets[subset])) # this does not work
         constraints.append(self._get_free_text_search(subsets[subset]))
         return super().get_collocations(constraints, *args, **kwargs)
 
@@ -315,9 +314,10 @@ class METNordic(Collocate):
         url_path = "https://thredds.met.no/thredds/dodsC/metpparchivev3"
         url_file = "met_analysis_1_0km_nordic"
         datetimeStr = "%04d%02d%02dT%02d" % (self.time.year, self.time.month, self.time.day,
-            self.time.hour)
+                                             self.time.hour)
         met_nordic_url = "%s/%04d/%02d/%02d/%s_%sZ.nc" % (url_path, self.time.year,
-            self.time.month, self.time.day, url_file, datetimeStr)
+                                                          self.time.month, self.time.day,
+                                                          url_file, datetimeStr)
 
         return met_nordic_url
 
@@ -335,7 +335,7 @@ class WeatherForecast(Collocate):
             "We need to add a proper geographical search based on "
             "polygons for this to work. In addition, the polygons "
             "must be added to the metadata files at data.met.no.")
-        #super().__init__(ds_url)
+        # super().__init__(ds_url)
 
 
 class NorKyst800(Collocate):
@@ -360,7 +360,8 @@ class NorKyst800(Collocate):
         # Construct url
         url_path = "https://thredds.met.no/thredds/dodsC/fou-hi/norkyst800m-1h"
         url_file = "NorKyst-800m_ZDEPTHS_his.an.%04d%02d%02d00.nc" % (self.time.year,
-            self.time.month, self.time.day)
+                                                                      self.time.month,
+                                                                      self.time.day)
         norkyst_url = os.path.join(url_path, url_file)
 
         return norkyst_url

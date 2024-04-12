@@ -214,8 +214,6 @@ def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monke
         assert tt == csw_records["rec1"]
 
 
-
-
 @pytest.mark.core
 def testNorKyst800(s1filename, monkeypatch):
     """ Test NorKyst800.
@@ -229,9 +227,6 @@ def testNorKyst800(s1filename, monkeypatch):
     url = coll.get_odap_url_of_nearest()
     assert url == ("https://thredds.met.no/thredds/dodsC/fou-hi/"
                    "norkyst800m-1h/NorKyst-800m_ZDEPTHS_his.an.2019010700.nc")
-
-
-    #records = coll.get_collocations
 
 
 @pytest.mark.core
@@ -275,4 +270,4 @@ def testMETNordic(s1filename, monkeypatch):
 @pytest.mark.core
 def testWeatherForecast(s1filename):
     with pytest.raises(NotImplementedError):
-        coll = WeatherForecast(s1filename)
+        WeatherForecast(s1filename)
