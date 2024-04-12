@@ -1,6 +1,6 @@
 """
-Collocation : with_sar.py
-=========================
+Collocation : with_dataset.py
+=============================
 
 Copyright 2021 MET Norway
 
@@ -30,37 +30,37 @@ from owslib.csw import CatalogueServiceWeb
 
 
 class Collocate:
-    """ Given a SAR dataset, find the closest dataset in time and
-    space of the given type.
+    """ Given a dataset filename or OPeNDAP, find the closest dataset
+    in time and space of the given type. The dataset must be netCDF4
+    type, and contain ACDD metadata time_coverage_start.
 
     Input
     =====
-    sar_url : string
-        OPeNDAP url to the file, or optionally the path to a local
-        file.
+    url : string
+        Dataset OPeNDAP url or filename.
     """
 
-    def __init__(self, sar_url):
+    def __init__(self, url):
 
-        self.sar_url = sar_url
+        self.url = url
 
         self.time = None
         self.polygon = None
         self.conn_csw = None
 
-        self._set_sar_date()
+        self._set_dataset_date()
 
         # Read location of SAR dataset
 
         # Set intersecting polygon
 
-    def _set_sar_date(self):
+    def _set_dataset_date(self):
         """ Set the central time of collocation, i.e., the time of
         the SAR dataset.
         """
-        fname = os.path.basename(self.sar_url)
-        # Read time of SAR dataset
-        date_string = fname.split("_")[5]
+        ds = netCDF4.Dataset(self.url)
+        # Read time of dataset
+        date_string = ds.time_coverage_start
 
         # Set central time of collocation
         time = parse(date_string)
@@ -248,12 +248,12 @@ class AromeArctic(Collocate):
     another dataset.
     """
 
-    def __init__(self, sar_url):
-        super().__init__(sar_url)
+    def __init__(self, url):
+        super().__init__(url)
 
     def get_collocations(self, subset="deterministic", *args, **kwargs):
         """ Returns Arome-Arctic records collocated with the dataset
-        given by sar_url.
+        given by url.
         """
         subsets = {
             "deterministic": "Arome-Arctic 2.5Km deterministic",
@@ -277,7 +277,7 @@ class Meps(Collocate):
 
     def get_collocations(self, subset="surface", *args, **kwargs):
         """ Returns weather forecast records collocated with the dataset
-        given by sar_url. The title search is limited to control
+        given by url. The title search is limited to control
         members only.
         """
         subsets = {

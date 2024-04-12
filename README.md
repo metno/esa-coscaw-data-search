@@ -8,13 +8,13 @@ Tools to find data to be used in ESA COSCaW
 
 ```
 # import module
-from collocation import with_sar
+from collocation import with_dataset
 
 # Specify Sentinel-1 filename
 s1filename = '/lustre/storeC-ext/users/coscaw/sentinel-1/2020/01/S1A_IW_RAW__0SDV_20200103T055642_20200103T055714_030632_03828E_875E.zip'
 
 # Call function to get model urls matching Sentinel-1 
-norkyst_url, met_nordic_url = with_sar.get_odap(s1filename)
+norkyst_url, met_nordic_url = with_dataset.get_odap(s1filename)
 
 ```
 
