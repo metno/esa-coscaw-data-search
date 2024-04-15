@@ -178,6 +178,16 @@ def testCollocate_Init(s1filename, monkeypatch):
     # Test init with time input
     coll = Collocate(s1filename, tt)
     assert coll.time == tt
+    coll = METNordic(s1filename, tt)
+    assert coll.time == tt
+    coll = NorKyst800(s1filename, tt)
+    assert coll.time == tt
+    coll = AromeArctic(s1filename, tt)
+    assert coll.time == tt
+    coll = Meps(s1filename, tt)
+    assert coll.time == tt
+    coll = WeatherForecast(s1filename, tt)
+    assert coll.time == tt
 
 
 @pytest.mark.core

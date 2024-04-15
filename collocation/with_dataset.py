@@ -257,8 +257,8 @@ class AromeArctic(Collocate):
     another dataset.
     """
 
-    def __init__(self, url):
-        super().__init__(url)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def get_collocations(self, subset="deterministic", *args, **kwargs):
         """ Returns Arome-Arctic records collocated with the dataset
@@ -281,8 +281,8 @@ class Meps(Collocate):
     dataset.
     """
 
-    def __init__(self, ds_url):
-        super().__init__(ds_url)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def get_collocations(self, subset="surface", *args, **kwargs):
         """ Returns weather forecast records collocated with the dataset
@@ -306,8 +306,8 @@ class METNordic(Collocate):
     forecasts with another dataset.
     """
 
-    def __init__(self, ds_url):
-        super().__init__(ds_url)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def get_collocations(self, *args, **kwargs):
         return super().get_collocations(*args, **kwargs)
@@ -339,7 +339,7 @@ class WeatherForecast(Collocate):
     metadata files at data.met.no
     """
 
-    def __init__(self, ds_url):
+    def __init__(self, *args, **kwargs):
         raise NotImplementedError(
             "We need to add a proper geographical search based on "
             "polygons for this to work. In addition, the polygons "
@@ -352,7 +352,7 @@ class NorKyst800(Collocate):
     dataset.
     """
 
-    def __init__(self, ds_url):
+    def __init__(self, *args, **kwargs):
         super().__init__(ds_url)
 
     def get_collocations(self, *args, **kwargs):
