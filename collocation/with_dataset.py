@@ -38,9 +38,14 @@ class Collocate:
     =====
     url : string
         Dataset OPeNDAP url or filename.
+    time : datetime.datetime (optional)
+        If the file cannot be opened with netCDF4, provide the time
+    bbox : string
+        OGC WKT string providing the bounding box, in case the
+        dataset cannot be opened with netCDF4
     """
 
-    def __init__(self, url):
+    def __init__(self, url, time=None, bbox=None):
 
         self.url = url
 
@@ -48,7 +53,10 @@ class Collocate:
         self.polygon = None
         self.conn_csw = None
 
-        self._set_dataset_date()
+        if type(time) is not datetime.datetime:
+            self._set_dataset_date()
+        else:
+            self.time = time
 
         # Read location of SAR dataset
 

@@ -175,6 +175,10 @@ def testCollocate_Init(s1filename, monkeypatch):
         assert coll.time == tt
         assert coll.time.tzinfo == tz.gettz("UTC")
 
+    # Test init with time input
+    coll = Collocate(s1filename, tt)
+    assert coll.time == tt
+
 
 @pytest.mark.core
 def testCollocate_set_csw_connection(s1filename, monkeypatch):
