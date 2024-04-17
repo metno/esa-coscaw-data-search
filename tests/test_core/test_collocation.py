@@ -202,6 +202,7 @@ def testCollocate_Init(s1filename, monkeypatch):
     coll = Meps(s1filename, tt)
     assert coll.time == tt
 
+
 @pytest.mark.core
 def testCollocate_assert_available(monkeypatch):
     """ Test that assert_available raises error if a dataset is not
@@ -211,6 +212,7 @@ def testCollocate_assert_available(monkeypatch):
     with pytest.raises(ValueError) as ee:
         Collocate.assert_available(url)
     assert str(ee.value) == "The archive file %s is not available. Try another dataset." % url
+
 
 @pytest.mark.core
 def testCollocate_set_csw_connection(s1filename, monkeypatch):

@@ -139,7 +139,7 @@ class Collocate:
         """ Assert that the dataset is available.
         """
         try:
-            ds = netCDF4.Dataset(url)
+            netCDF4.Dataset(url)
         except OSError:
             raise ValueError("The archive file %s is not available. Try another dataset." % url)
         return None
@@ -337,9 +337,8 @@ class METNordic(Collocate):
         url_file = "met_analysis_1_0km_nordic"
         datetimeStr = "%04d%02d%02dT%02d" % (self.time.year, self.time.month, self.time.day,
                                              self.time.hour)
-        url = "%s/%04d/%02d/%02d/%s_%sZ.nc" % (url_path, self.time.year,
-                                                          self.time.month, self.time.day,
-                                                          url_file, datetimeStr)
+        url = "%s/%04d/%02d/%02d/%s_%sZ.nc" % (url_path, self.time.year, self.time.month,
+                                               self.time.day, url_file, datetimeStr)
         self.assert_available(url)
 
         return url
