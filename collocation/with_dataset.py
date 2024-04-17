@@ -69,7 +69,10 @@ class Collocate:
         except OSError:
             ds = netCDF4.Dataset(self.url + "#fillmismatch")
         # Read time of dataset
-        date_string = ds.time_coverage_start
+        try:
+            date_string = ds.time_coverage_start
+        except AttributeError:
+            date_string = ds.ACQUISITION_START_TIME
 
         # Set central time of collocation
         time = parse(date_string)
@@ -130,6 +133,16 @@ class Collocate:
         ds.close()
 
         return start, end
+
+    @staticmethod
+    def assert_available(url):
+        """ Assert that the dataset is available.
+        """
+        try:
+            ds = netCDF4.Dataset(url)
+        except OSError:
+            raise ValueError("The archive file %s is not available. Try another dataset." % url)
+        return None
 
     def _get_nearest_by_time(self, records, index):
         """ Returns the record that is closest to self.time by given
@@ -324,11 +337,12 @@ class METNordic(Collocate):
         url_file = "met_analysis_1_0km_nordic"
         datetimeStr = "%04d%02d%02dT%02d" % (self.time.year, self.time.month, self.time.day,
                                              self.time.hour)
-        met_nordic_url = "%s/%04d/%02d/%02d/%s_%sZ.nc" % (url_path, self.time.year,
+        url = "%s/%04d/%02d/%02d/%s_%sZ.nc" % (url_path, self.time.year,
                                                           self.time.month, self.time.day,
                                                           url_file, datetimeStr)
+        self.assert_available(url)
 
-        return met_nordic_url
+        return url
 
 
 class WeatherForecast(Collocate):
@@ -353,7 +367,7 @@ class NorKyst800(Collocate):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(ds_url)
+        super().__init__(*args, **kwargs)
 
     def get_collocations(self, *args, **kwargs):
         return super().get_collocations(*args, **kwargs)
@@ -371,6 +385,7 @@ class NorKyst800(Collocate):
         url_file = "NorKyst-800m_ZDEPTHS_his.an.%04d%02d%02d00.nc" % (self.time.year,
                                                                       self.time.month,
                                                                       self.time.day)
-        norkyst_url = os.path.join(url_path, url_file)
+        url = os.path.join(url_path, url_file)
+        self.assert_available(url)
 
-        return norkyst_url
+        return url

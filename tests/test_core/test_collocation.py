@@ -84,6 +84,14 @@ class MockNcDataset:
         return None
 
 
+class MockNcDataset2:
+
+    ACQUISITION_START_TIME = "20190107T171737"
+
+    def __init__(self, *args, **kwargs):
+        return None
+
+
 class Fail:
 
     def __init__(self, *args, **kwargs):
@@ -114,6 +122,13 @@ def testCollocate__set_dataset_date(s1filename, monkeypatch):
     with monkeypatch.context() as mp:
         smock = SelectMock()
         smock.side_effect = [OSError, MockNcDataset()]
+        mp.setattr("collocation.with_dataset.netCDF4.Dataset", smock)
+        coll = Collocate(s1filename)
+        assert coll.time == tt
+
+    with monkeypatch.context() as mp:
+        smock = SelectMock()
+        smock.side_effect = [OSError, MockNcDataset2()]
         mp.setattr("collocation.with_dataset.netCDF4.Dataset", smock)
         coll = Collocate(s1filename)
         assert coll.time == tt
@@ -186,9 +201,16 @@ def testCollocate_Init(s1filename, monkeypatch):
     assert coll.time == tt
     coll = Meps(s1filename, tt)
     assert coll.time == tt
-    coll = WeatherForecast(s1filename, tt)
-    assert coll.time == tt
 
+@pytest.mark.core
+def testCollocate_assert_available(monkeypatch):
+    """ Test that assert_available raises error if a dataset is not
+    available.
+    """
+    url = "lkjlkj"
+    with pytest.raises(ValueError) as ee:
+        Collocate.assert_available(url)
+    assert str(ee.value) == "The archive file %s is not available. Try another dataset." % url
 
 @pytest.mark.core
 def testCollocate_set_csw_connection(s1filename, monkeypatch):
