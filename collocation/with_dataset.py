@@ -22,15 +22,32 @@ import datetime
 
 import numpy as np
 
-from dateutil import tz
+from pytz import timezone
 from dateutil.parser import parse
 
 from owslib import fes
 from owslib.csw import CatalogueServiceWeb
 
 
+class SearchCSW:
+    """Find data in a given time interval and location.
+
+    Input
+    =====
+    time : datetime.datetime (default now)
+        If the file cannot be opened with netCDF4, provide the time
+    dt : float (default 1)
+        Time interval in days before and after the given time
+    bbox : string (default global)
+        OGC WKT string providing the bounding box
+    """
+    def __init__(self, time=None, dt=1, bbox=""):
+        self.time = time
+        if self.time is None:
+            self.time = datetime.datetime.now(timezone("utc"))
+
 class Collocate:
-    """ Given a dataset filename or OPeNDAP, find the closest dataset
+    """Given a dataset filename or OPeNDAP, find the closest dataset
     in time and space of the given type. The dataset must be netCDF4
     type, and contain ACDD metadata time_coverage_start.
 
@@ -58,8 +75,6 @@ class Collocate:
         else:
             self.time = time
 
-        # Read location of SAR dataset
-
     def _set_dataset_date(self):
         """ Set the central time of collocation, i.e., the time of
         the SAR dataset.
@@ -76,7 +91,7 @@ class Collocate:
 
         # Set central time of collocation
         time = parse(date_string)
-        self.time = time.replace(tzinfo=time.tzinfo or tz.gettz("UTC"))
+        self.time = time.replace(tzinfo=time.tzinfo or timezone("utc"))
 
     def get_collocations(self, constraints=None, dt=24, endpoint="https://data.csw.met.no"):
         """ Uses SAR time, plus other provided constraints (optional)
@@ -104,6 +119,8 @@ class Collocate:
         # Add temporal search objects to the list of constraints
         constraints.append(temporal_search_start)
         constraints.append(temporal_search_end)
+
+        # TODO: Add location search
 
         # Search and return dict
         return self._execute([fes.And(constraints)], endpoint=endpoint)

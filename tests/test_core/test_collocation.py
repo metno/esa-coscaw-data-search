@@ -19,8 +19,8 @@ limitations under the License.
 import pytest
 import datetime
 
+from pytz import timezone
 from unittest.mock import Mock
-from dateutil import tz
 from dateutil.parser import parse
 
 from collocation.with_dataset import Collocate
@@ -118,7 +118,7 @@ def testCollocate__set_dataset_date(s1filename, monkeypatch):
     class SelectMock(Mock):
         pass
 
-    tt = datetime.datetime(2019, 1, 7, 17, 17, 37, tzinfo=tz.gettz("UTC"))
+    tt = datetime.datetime(2019, 1, 7, 17, 17, 37, tzinfo=timezone("utc"))
     with monkeypatch.context() as mp:
         smock = SelectMock()
         smock.side_effect = [OSError, MockNcDataset()]
@@ -184,11 +184,11 @@ def testCollocate_Init(s1filename, monkeypatch):
     with monkeypatch.context() as mp:
         mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
         coll = Collocate(s1filename)
-        tt = datetime.datetime(2019, 1, 7, 17, 17, 37, tzinfo=tz.gettz("UTC"))
+        tt = datetime.datetime(2019, 1, 7, 17, 17, 37, tzinfo=timezone("utc"))
 
         assert coll.url == s1filename
         assert coll.time == tt
-        assert coll.time.tzinfo == tz.gettz("UTC")
+        assert coll.time.tzinfo == timezone("utc")
 
     # Test init with time input
     coll = Collocate(s1filename, tt)
