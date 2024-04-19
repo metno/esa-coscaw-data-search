@@ -32,24 +32,109 @@ from owslib.csw import CatalogueServiceWeb
 class SearchCSW:
     """Find data in a given time interval and location.
 
+    Note: owslib only handles bounding box search by maximum and
+    minimum longitude and latitude. This is very limited and
+    impractical for searches near the poles, so we should avoid owslib
+    and rather use jinja to fill out a template xml.
+
+    TODO: implement search for polygon intersection using an xml
+    template and jinja.
+
     Input
     =====
     time : datetime.datetime (default now)
         If the file cannot be opened with netCDF4, provide the time
-    dt : float (default 1)
-        Time interval in days before and after the given time
-    bbox : string (default global)
-        OGC WKT string providing the bounding box
+    dt : float (default 24)
+        Time interval in hours before and after the given time
+    bbox : float list (default [-180, -90, 180, 90])
+       A bounding box for the search area specified by latitude and
+       longitude, i.e., bbox = [lon_min, lat_min, lon_max, lat_max]
     """
-    def __init__(self, time=None, dt=1, bbox=""):
+    def __init__(self, time=None, dt=24, bbox=None, text=None,
+                 crs="urn:ogc:def:crs:OGC:1.3:CRS84", *args, **kwargs):
+
         self.time = time
         if self.time is None:
             self.time = datetime.datetime.now(timezone("utc"))
 
+        self.bbox = bbox
+        if self.bbox is None:
+            self.bbox = [-180, 90, -180, -90]
+        if len(np.array(self.bbox).shape) != 1:
+            raise NotImplementedError("%s does not yet support more complex geographic search."
+                                      % self.__name__)
+
+        if constraints is None:
+            constraints = []
+
+        self.search_start = self.time - datetime.timediff(hours=dt)
+        self.search_end = self.time + datetime.timediff(hours=dt)
+
+        # Create temporal search objects
+        temporal_search_start, temporal_search_end = self._temporal_filter(dt=dt)
+
+        # Add temporal search objects to the list of constraints
+        constraints.append(temporal_search_start)
+        constraints.append(temporal_search_end)
+
+        bbox_crs = fes.BBox(bbox, crs=crs)
+        constraints.append(bbox_crs)
+
+        if text is not None:
+            constraints.append(self._get_freetxt_search(text))
+
+        filter_list = [fes.And(constraints)]
+
+        self._get_csw_records(csw, filter_list, pagesize=10, maxrecords=100)
+
+        self.urls = []
+
+        for key, value in list(csw.records.items()):
+            for ref in value.references:
+                if ref['scheme'] == 'OPeNDAP:OPeNDAP':
+                    self.urls.append(ref['url'])
+                    continue
+
+
+
+    def _temporal_filter(self, dt=24):
+        """ Take datetime-like objects and return a fes filter for
+        date range.
+
+        NOTE: the "begin" search seems to be performed on the date of
+        each record (the dataset publication_date), not the actual
+        time_coverage_start or time_coverage_end. This appear to be a
+        bug in pycsw. The "end" search seems to correctly represent
+        time_coverage_end. Also, it seems that the "OrEqual"
+        requirement doesn't come into effect. We need to search +/- 1
+        day in order to get anything. The time delta can be increased
+        through the keyword dt but should not be less than 24 hours.
+
+        TODO: check and fix issues with temporal search!
+
+        Input
+        =====
+        dt : int
+            Search interval in hours (+/-)
+        """
+        start = (self.time - datetime.timedelta(hours=dt)).strftime("%Y-%m-%d %H:%M:%S")
+        stop = (self.time + datetime.timedelta(hours=dt)).strftime("%Y-%m-%d %H:%M:%S")
+
+        propertyname = "apiso:TempExtent_begin"  # same as record date?
+        begin = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=stop)
+        # begin = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=time)
+        # propertyname = "apiso:TempExtent_end"  # same as time_coverage_end?
+        propertyname = "apiso:TempExtent_begin"  # search record date only
+        end = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=start)
+        # end = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=time)
+
+        return begin, end
+
+
 class Collocate:
-    """Given a dataset filename or OPeNDAP, find the closest dataset
-    in time and space of the given type. The dataset must be netCDF4
-    type, and contain ACDD metadata time_coverage_start.
+    """Given a dataset filename or OPeNDAP url, find the closest
+    dataset in time and space of the given type. The dataset must be
+    netCDF4 type, and contain ACDD metadata time_coverage_start.
 
     Input
     =====
@@ -223,39 +308,6 @@ class Collocate:
                 next_record = 0
 
         return csw_records
-
-    def _temporal_filter(self, dt=24):
-        """ Take datetime-like objects and return a fes filter for
-        date range.
-
-        NOTE: the "begin" search seems to be performed on the date of
-        each record (the dataset publication_date), not the actual
-        time_coverage_start or time_coverage_end. This appear to be a
-        bug in pycsw. The "end" search seems to correctly represent
-        time_coverage_end. Also, it seems that the "OrEqual"
-        requirement doesn't come into effect. We need to search +/- 1
-        day in order to get anything. The time delta can be increased
-        through the keyword dt but should not be less than 24 hours.
-
-        TODO: check and fix issues with temporal search!
-
-        Input
-        =====
-        dt : int
-            Search interval in hours (+/-)
-        """
-        start = (self.time - datetime.timedelta(hours=dt)).strftime("%Y-%m-%d %H:%M:%S")
-        stop = (self.time + datetime.timedelta(hours=dt)).strftime("%Y-%m-%d %H:%M:%S")
-
-        propertyname = "apiso:TempExtent_begin"  # same as record date?
-        begin = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=stop)
-        # begin = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=time)
-        # propertyname = "apiso:TempExtent_end"  # same as time_coverage_end?
-        propertyname = "apiso:TempExtent_begin"  # search record date only
-        end = fes.PropertyIsGreaterThanOrEqualTo(propertyname=propertyname, literal=start)
-        # end = fes.PropertyIsLessThanOrEqualTo(propertyname=propertyname, literal=time)
-
-        return begin, end
 
     def _get_title_search(self, text):
         """ Return CSW search object for title search.

@@ -23,6 +23,7 @@ from pytz import timezone
 from unittest.mock import Mock
 from dateutil.parser import parse
 
+from collocation.with_dataset import SearchCSW
 from collocation.with_dataset import Collocate
 from collocation.with_dataset import METNordic
 from collocation.with_dataset import NorKyst800
@@ -97,6 +98,20 @@ class Fail:
     def __init__(self, *args, **kwargs):
         raise OSError
 
+
+@pytest.mark.live
+def testSearchCSW_Init():
+    """Test data search for time, location and freetext.
+    """
+    polygon = [[-5.0, 47.0], [-5.0, 55.0], [20., 55.0], [20.0, 47.0], [-5.0, 47.0]]  # lon lat, 
+    with pytest.raise(NotImplementedError):
+        ds = SearchCSW(time=datetime.datetime(2024, 4, 18, 13, 0, 0, tzinfo=timezone("utc")),
+                       bbox=polygon)
+
+    point_lat_lon = "59.0 4.0"
+    point_wkt = "POINT (4.0 59.0)"
+    ds = SearchCSW(time=datetime.datetime(2024, 4, 18, 13, 0, 0, tzinfo=timezone("utc")),
+                   bbox=point_wkt)
 
 @pytest.mark.core
 def testCollocate__execute(s1filename, monkeypatch):
