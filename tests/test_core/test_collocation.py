@@ -57,6 +57,7 @@ class MockRecord:
     def __init__(self, *args, **kwargs):
         return None
 
+
 class MockCSW:
 
     test = "test"
@@ -106,7 +107,6 @@ class Fail:
 def testSearchCSW_Init():
     """Test data search for time, location and freetext.
     """
-    point_lat_lon = "59.0 4.0"
     point = [4.0, 59.0, 4.0, 59.9]
     ds = SearchCSW(time=datetime.datetime(2024, 4, 18, 13, 0, 0, tzinfo=timezone("utc")),
                    bbox=point)
@@ -117,7 +117,7 @@ def testSearchCSW_Init():
 def testSearchCSW_Init_offline(monkeypatch):
     """Offline test of SearchCSW init function.
     """
-    polygon = [[-5.0, 47.0], [-5.0, 55.0], [20., 55.0], [20.0, 47.0], [-5.0, 47.0]]  # lon lat, 
+    polygon = [[-5.0, 47.0], [-5.0, 55.0], [20., 55.0], [20.0, 47.0], [-5.0, 47.0]]
     with pytest.raises(NotImplementedError) as ee:
         ds = SearchCSW(time=datetime.datetime(2024, 4, 18, 13, 0, 0, tzinfo=timezone("utc")),
                        bbox=polygon)
@@ -129,13 +129,14 @@ def testSearchCSW_Init_offline(monkeypatch):
     with monkeypatch.context() as mp:
         mp.setattr(SearchCSW, "_execute",
                    lambda *a, **k: {"no.met:d65b856f-4450-46db-a4aa-e532cf9dc33e": mm})
-        # With time, text and 
+        # With time, text and bbox
         ds = SearchCSW(time=datetime.datetime(2024, 4, 18, 13, 0, 0, tzinfo=timezone("utc")),
                        text="Arome", bbox=bbox)
         assert len(ds.urls) == 1
         # Without inputs
         ds = SearchCSW()
         assert len(ds.urls) == 1
+
 
 @pytest.mark.core
 def testCollocate__execute(s1filename, monkeypatch):
