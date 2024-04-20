@@ -52,6 +52,11 @@ refs = [
 ]
 
 
+class MockRecord:
+
+    def __init__(self, *args, **kwargs):
+        return None
+
 class MockCSW:
 
     test = "test"
@@ -60,11 +65,9 @@ class MockCSW:
         return None
 
     def getrecords2(self, *args, **kwargs):
-        class Record:
-            pass
-        rec1 = Record()
+        rec1 = MockRecord()
         rec1.references = refs
-        rec2 = Record()
+        rec2 = MockRecord()
         rec2.references = refs
         self.records = {
             "rec1": rec1,
@@ -103,15 +106,36 @@ class Fail:
 def testSearchCSW_Init():
     """Test data search for time, location and freetext.
     """
+    point_lat_lon = "59.0 4.0"
+    point = [4.0, 59.0, 4.0, 59.9]
+    ds = SearchCSW(time=datetime.datetime(2024, 4, 18, 13, 0, 0, tzinfo=timezone("utc")),
+                   bbox=point)
+    assert len(ds.records.keys()) > 0
+
+
+@pytest.mark.core
+def testSearchCSW_Init_offline(monkeypatch):
+    """Offline test of SearchCSW init function.
+    """
     polygon = [[-5.0, 47.0], [-5.0, 55.0], [20., 55.0], [20.0, 47.0], [-5.0, 47.0]]  # lon lat, 
-    with pytest.raise(NotImplementedError):
+    with pytest.raises(NotImplementedError) as ee:
         ds = SearchCSW(time=datetime.datetime(2024, 4, 18, 13, 0, 0, tzinfo=timezone("utc")),
                        bbox=polygon)
+    assert str(ee.value) == "SearchCSW does not yet support more complex geographic search."
 
-    point_lat_lon = "59.0 4.0"
-    point_wkt = "POINT (4.0 59.0)"
-    ds = SearchCSW(time=datetime.datetime(2024, 4, 18, 13, 0, 0, tzinfo=timezone("utc")),
-                   bbox=point_wkt)
+    mm = MockRecord()
+    mm.references = refs
+    bbox = [-2, 60, 3, 65]
+    with monkeypatch.context() as mp:
+        mp.setattr(SearchCSW, "_execute",
+                   lambda *a, **k: {"no.met:d65b856f-4450-46db-a4aa-e532cf9dc33e": mm})
+        # With time, text and 
+        ds = SearchCSW(time=datetime.datetime(2024, 4, 18, 13, 0, 0, tzinfo=timezone("utc")),
+                       text="Arome", bbox=bbox)
+        assert len(ds.urls) == 1
+        # Without inputs
+        ds = SearchCSW()
+        assert len(ds.urls) == 1
 
 @pytest.mark.core
 def testCollocate__execute(s1filename, monkeypatch):

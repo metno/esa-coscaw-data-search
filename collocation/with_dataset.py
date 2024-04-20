@@ -61,14 +61,13 @@ class SearchCSW:
         if self.bbox is None:
             self.bbox = [-180, 90, -180, -90]
         if len(np.array(self.bbox).shape) != 1:
-            raise NotImplementedError("%s does not yet support more complex geographic search."
-                                      % self.__name__)
+            raise NotImplementedError("SearchCSW does not yet support more complex "
+                                      "geographic search.")
 
-        if constraints is None:
-            constraints = []
+        constraints = []
 
-        self.search_start = self.time - datetime.timediff(hours=dt)
-        self.search_end = self.time + datetime.timediff(hours=dt)
+        self.search_start = self.time - datetime.timedelta(hours=dt)
+        self.search_end = self.time + datetime.timedelta(hours=dt)
 
         # Create temporal search objects
         temporal_search_start, temporal_search_end = self._temporal_filter(dt=dt)
@@ -77,25 +76,81 @@ class SearchCSW:
         constraints.append(temporal_search_start)
         constraints.append(temporal_search_end)
 
-        bbox_crs = fes.BBox(bbox, crs=crs)
-        constraints.append(bbox_crs)
+        bbox_search = fes.BBox(bbox, crs=crs)
+        constraints.append(bbox_search)
 
         if text is not None:
-            constraints.append(self._get_freetxt_search(text))
+            constraints.append(self._get_free_text_search(text))
 
-        filter_list = [fes.And(constraints)]
-
-        self._get_csw_records(csw, filter_list, pagesize=10, maxrecords=100)
+        self.records = self._execute([fes.And(constraints)])
 
         self.urls = []
 
-        for key, value in list(csw.records.items()):
-            for ref in value.references:
-                if ref['scheme'] == 'OPeNDAP:OPeNDAP':
-                    self.urls.append(ref['url'])
-                    continue
+        for key, record in self.records.items():
+            self.urls.append(SearchCSW.get_odap_url(record))
 
+    @staticmethod
+    def get_odap_url(record):
+        """ Return OPeNDAP url of given CSW record.
+        """
+        for scheme in record.references:
+            if "opendap" in scheme["scheme"].lower():
+                url = scheme["url"]
+                break
+        return url
 
+    def _get_free_text_search(self, text):
+        """ Return CSW search object based on any match with the input
+        string.
+        """
+        property_name = "csw:AnyText"
+        return self._get_prop_search(text, property_name)
+
+    def _get_title_search(self, text):
+        """ Return CSW search object for title search.
+        """
+        property_name = "dc:title"
+        return self._get_prop_search(text, property_name)
+
+    def _get_prop_search(self, text, property_name):
+        """ Return CSW search object for given property and text.
+        """
+        return fes.PropertyIsLike(property_name, literal=text, escapeChar="\\", singleChar="_",
+                                  wildCard="%", matchCase=True)
+
+    def _set_csw_connection(self, endpoint="https://data.csw.met.no"):
+        """ Sets connection to OGC CSW service.
+        """
+        self.conn_csw = CatalogueServiceWeb(endpoint, timeout=60)
+
+    def _execute(self, filter_list, pagesize=10, max_records=1000,
+                 endpoint="https://data.csw.met.no"):
+        """ Execute CSW search using the provided filter list, and
+        return a dictionary of all the resulting records. Limit the
+        number of retrieved records using the keyword max_records.
+        """
+        csw_records = {}
+        start_position = 0
+
+        # Connect to the CSW service
+        self._set_csw_connection(endpoint=endpoint)
+
+        next_record = 1
+        while next_record != 0:
+            # Iterate pages until the requested max_records is reached
+            self.conn_csw.getrecords2(
+                constraints=filter_list,
+                startposition=start_position,
+                maxrecords=pagesize,
+                outputschema="http://www.opengis.net/cat/csw/2.0.2",
+                esn="full")
+            csw_records.update(self.conn_csw.records)
+            next_record = self.conn_csw.results["nextrecord"]
+            start_position += pagesize + 1  # Last one is included.
+            if start_position >= max_records:
+                next_record = 0
+
+        return csw_records
 
     def _temporal_filter(self, dt=24):
         """ Take datetime-like objects and return a fes filter for
@@ -106,9 +161,10 @@ class SearchCSW:
         time_coverage_start or time_coverage_end. This appear to be a
         bug in pycsw. The "end" search seems to correctly represent
         time_coverage_end. Also, it seems that the "OrEqual"
-        requirement doesn't come into effect. We need to search +/- 1
-        day in order to get anything. The time delta can be increased
-        through the keyword dt but should not be less than 24 hours.
+        requirement doesn not come into effect. We need to search +/-
+        1 day in order to get anything. The time delta can be
+        increased through the keyword dt but should not be less than
+        24 hours.
 
         TODO: check and fix issues with temporal search!
 
@@ -131,7 +187,7 @@ class SearchCSW:
         return begin, end
 
 
-class Collocate:
+class Collocate(SearchCSW):
     """Given a dataset filename or OPeNDAP url, find the closest
     dataset in time and space of the given type. The dataset must be
     netCDF4 type, and contain ACDD metadata time_coverage_start.
@@ -172,6 +228,7 @@ class Collocate:
         try:
             date_string = ds.time_coverage_start
         except AttributeError:
+            # Special exception for Sentinel 1 data..
             date_string = ds.ACQUISITION_START_TIME
 
         # Set central time of collocation
@@ -209,16 +266,6 @@ class Collocate:
 
         # Search and return dict
         return self._execute([fes.And(constraints)], endpoint=endpoint)
-
-    @staticmethod
-    def get_odap_url(record):
-        """ Return OPeNDAP url of given record.
-        """
-        for scheme in record.references:
-            if "opendap" in scheme["scheme"].lower():
-                url = scheme["url"]
-                break
-        return url
 
     @staticmethod
     def get_time_coverage(record):
@@ -279,59 +326,6 @@ class Collocate:
         records = self.get_collocations(*args, **kwargs)
         nearest = self.get_nearest_collocation_by_time_coverage_start(records)
         return Collocate.get_odap_url(nearest)
-
-    def _execute(self, filter_list, pagesize=10, max_records=1000,
-                 endpoint="https://data.csw.met.no"):
-        """ Execute CSW search using the provided filter list, and
-        return a dictionary of all the resulting records. Limit the
-        number of retrieved records using the keyword max_records.
-        """
-        csw_records = {}
-        start_position = 0
-
-        # Connect to the CSW service
-        self._set_csw_connection(endpoint=endpoint)
-
-        next_record = 1
-        while next_record != 0:
-            # Iterate pages until the requested max_records is reached
-            self.conn_csw.getrecords2(
-                constraints=filter_list,
-                startposition=start_position,
-                maxrecords=pagesize,
-                outputschema="http://www.opengis.net/cat/csw/2.0.2",
-                esn='full')
-            csw_records.update(self.conn_csw.records)
-            next_record = self.conn_csw.results["nextrecord"]
-            start_position += pagesize + 1  # Last one is included.
-            if start_position >= max_records:
-                next_record = 0
-
-        return csw_records
-
-    def _get_title_search(self, text):
-        """ Return CSW search object for title search.
-        """
-        property_name = "dc:title"
-        return self._get_prop_search(text, property_name)
-
-    def _get_free_text_search(self, text):
-        """ Return CSW search object based on any match with the input
-        string.
-        """
-        property_name = "csw:AnyText"
-        return self._get_prop_search(text, property_name)
-
-    def _get_prop_search(self, text, property_name):
-        """ Return CSW search object for given property and text.
-        """
-        return fes.PropertyIsLike(property_name, literal=text, escapeChar='\\', singleChar='_',
-                                  wildCard='%', matchCase=True)
-
-    def _set_csw_connection(self, endpoint="https://data.csw.met.no"):
-        """ Sets connection to OGC CSW service.
-        """
-        self.conn_csw = CatalogueServiceWeb(endpoint, timeout=60)
 
 
 class AromeArctic(Collocate):
