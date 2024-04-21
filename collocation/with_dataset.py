@@ -59,15 +59,12 @@ class SearchCSW:
 
         self.bbox = bbox
         if self.bbox is None:
-            self.bbox = [-180, 90, -180, -90]
+            self.bbox = [-180, -90, 180, 90]
         if len(np.array(self.bbox).shape) != 1:
             raise NotImplementedError("SearchCSW does not yet support more complex "
                                       "geographic search.")
 
         constraints = []
-
-        self.search_start = self.time - datetime.timedelta(hours=dt)
-        self.search_end = self.time + datetime.timedelta(hours=dt)
 
         # Create temporal search objects
         temporal_search_start, temporal_search_end = self._temporal_filter(dt=dt)
@@ -76,13 +73,13 @@ class SearchCSW:
         constraints.append(temporal_search_start)
         constraints.append(temporal_search_end)
 
-        bbox_search = fes.BBox(bbox, crs=crs)
-        constraints.append(bbox_search)
+        #bbox_search = fes.BBox(self.bbox, crs=crs)
+        #constraints.append(bbox_search)
 
         if text is not None:
             constraints.append(self._get_free_text_search(text))
 
-        self.records = self._execute([fes.And(constraints)])
+        self.records = self._execute([fes.And(constraints)], *args, **kwargs)
 
         self.urls = []
 
@@ -93,6 +90,9 @@ class SearchCSW:
     def get_odap_url(record):
         """ Return OPeNDAP url of given CSW record.
         """
+        if len(record.references) == 0:
+            return None
+
         for scheme in record.references:
             if "opendap" in scheme["scheme"].lower():
                 url = scheme["url"]
@@ -117,6 +117,8 @@ class SearchCSW:
         """
         return fes.PropertyIsLike(property_name, literal=text, escapeChar="\\", singleChar="_",
                                   wildCard="%", matchCase=True)
+        #return fes.PropertyIsLike(property_name, literal=text, escapeChar='\\', singleChar='?',
+        #                          wildCard='%', matchCase=True)
 
     def _set_csw_connection(self, endpoint="https://data.csw.met.no"):
         """ Sets connection to OGC CSW service.
