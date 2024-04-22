@@ -73,8 +73,8 @@ class SearchCSW:
         constraints.append(temporal_search_start)
         constraints.append(temporal_search_end)
 
-        #bbox_search = fes.BBox(self.bbox, crs=crs)
-        #constraints.append(bbox_search)
+        bbox_search = fes.BBox(self.bbox, crs=crs)
+        constraints.append(bbox_search)
 
         if text is not None:
             constraints.append(self._get_free_text_search(text))
@@ -117,8 +117,6 @@ class SearchCSW:
         """
         return fes.PropertyIsLike(property_name, literal=text, escapeChar="\\", singleChar="_",
                                   wildCard="%", matchCase=True)
-        #return fes.PropertyIsLike(property_name, literal=text, escapeChar='\\', singleChar='?',
-        #                          wildCard='%', matchCase=True)
 
     def _set_csw_connection(self, endpoint="https://data.csw.met.no"):
         """ Sets connection to OGC CSW service.
@@ -198,11 +196,6 @@ class Collocate(SearchCSW):
     =====
     url : string
         Dataset OPeNDAP url or filename.
-    time : datetime.datetime (optional)
-        If the file cannot be opened with netCDF4, provide the time
-    bbox : string
-        OGC WKT string providing the bounding box, in case the
-        dataset cannot be opened with netCDF4
     """
 
     def __init__(self, url, time=None, bbox=None):
@@ -213,15 +206,6 @@ class Collocate(SearchCSW):
         self.polygon = None
         self.conn_csw = None
 
-        if type(time) is not datetime.datetime:
-            self._set_dataset_date()
-        else:
-            self.time = time
-
-    def _set_dataset_date(self):
-        """ Set the central time of collocation, i.e., the time of
-        the SAR dataset.
-        """
         try:
             ds = netCDF4.Dataset(self.url)
         except OSError:
@@ -237,7 +221,12 @@ class Collocate(SearchCSW):
         time = parse(date_string)
         self.time = time.replace(tzinfo=time.tzinfo or timezone("utc"))
 
-    def get_collocations(self, constraints=None, dt=24, endpoint="https://data.csw.met.no"):
+        # Set bounding box
+        self.bbox = [float(ds.geospatial_lon_min), float(ds.geospatial_lat_min),
+                     float(ds.geospatial_lon_max), float(ds.geospatial_lat_max)]
+
+    def get_collocations(self, constraints=None, dt=24, endpoint="https://data.csw.met.no",
+                         crs="urn:ogc:def:crs:OGC:1.3:CRS84"):
         """ Uses SAR time, plus other provided constraints (optional)
         to find collocated dataset(s).
 
@@ -264,7 +253,9 @@ class Collocate(SearchCSW):
         constraints.append(temporal_search_start)
         constraints.append(temporal_search_end)
 
-        # TODO: Add location search
+        # Location search
+        bbox_search = fes.BBox(self.bbox, crs=crs)
+        constraints.append(bbox_search)
 
         # Search and return dict
         return self._execute([fes.And(constraints)], endpoint=endpoint)
@@ -299,6 +290,14 @@ class Collocate(SearchCSW):
         """ Returns the record that is closest to self.time by given
         index. The index indicates either time_coverage_start (0) or
         time_coverage_end (1).
+
+        Input
+        =====
+        records : list
+            of owslib.catalogue.csw2.CswRecord
+        index : int (0 or 1)
+            0 for searching by time_coverage_start and 1 for searching
+            by time_coverage_end
         """
         times = np.array([])
         keys = []

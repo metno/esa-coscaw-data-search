@@ -84,6 +84,10 @@ class MockNcDataset:
     # S1B_IW_RAW__0SDV_20190107T171737_20190107T171810_014391_01AC8B_78F4.zip
     time_coverage_start = "20190107T171737"
     time_coverage_end = "20190107T171810"
+    geospatial_lon_min = -3.
+    geospatial_lon_max = 5.
+    geospatial_lat_min = 58.
+    geospatial_lat_max = 65.
 
     def __init__(self, *args, **kwargs):
         return None
@@ -92,6 +96,10 @@ class MockNcDataset:
 class MockNcDataset2:
 
     ACQUISITION_START_TIME = "20190107T171737"
+    geospatial_lon_min = -3.
+    geospatial_lon_max = 5.
+    geospatial_lat_min = 58.
+    geospatial_lat_max = 65.
 
     def __init__(self, *args, **kwargs):
         return None
@@ -230,17 +238,17 @@ def testCollocate_Init(s1filename, monkeypatch):
         assert coll.time == tt
         assert coll.time.tzinfo == timezone("utc")
 
-    # Test init with time input
-    coll = Collocate(s1filename, tt)
-    assert coll.time == tt
-    coll = METNordic(s1filename, tt)
-    assert coll.time == tt
-    coll = NorKyst800(s1filename, tt)
-    assert coll.time == tt
-    coll = AromeArctic(s1filename, tt)
-    assert coll.time == tt
-    coll = Meps(s1filename, tt)
-    assert coll.time == tt
+        # Test init with time input
+        coll = Collocate(s1filename, tt)
+        assert coll.time == tt
+        coll = METNordic(s1filename, tt)
+        assert coll.time == tt
+        coll = NorKyst800(s1filename, tt)
+        assert coll.time == tt
+        coll = AromeArctic(s1filename, tt)
+        assert coll.time == tt
+        coll = Meps(s1filename, tt)
+        assert coll.time == tt
 
 
 @pytest.mark.core
@@ -296,6 +304,8 @@ def testCollocate_get_odap_url(csw_record):
     assert Collocate.get_odap_url(csw_record) == ("https://thredds.met.no/thredds/dodsC/"
                                                   "meps25epsarchive/2024/04/06/10/"
                                                   "meps_mbr007_sfc_20240406T10Z.ncml")
+    csw_record.references = []
+    assert Collocate.get_odap_url(csw_record) is None
 
 
 class MockDataset:
