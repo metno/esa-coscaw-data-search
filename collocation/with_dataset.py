@@ -301,6 +301,8 @@ class Collocate(SearchCSW):
         """
         times = np.array([])
         keys = []
+        if not bool(records):
+            raise ValueError("Input records dict is empty.")
         for key, record in records.items():
             tt = Collocate.get_time_coverage(record)
             times = np.append(times, tt[index])
@@ -324,9 +326,12 @@ class Collocate(SearchCSW):
         """ Returns the OPeNDAP url of the nearest collocated
         dataset.
         """
+        url = None
         records = self.get_collocations(*args, **kwargs)
-        nearest = self.get_nearest_collocation_by_time_coverage_start(records)
-        return Collocate.get_odap_url(nearest)
+        if bool(records):
+            nearest = self.get_nearest_collocation_by_time_coverage_start(records)
+            url = Collocate.get_odap_url(nearest)
+        return url
 
 
 class AromeArctic(Collocate):

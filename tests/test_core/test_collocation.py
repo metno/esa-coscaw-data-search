@@ -358,6 +358,9 @@ def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monke
         assert tt == csw_records["rec1"]
         tt = coll.get_nearest_collocation_by_time_coverage_end(csw_records)
         assert tt == csw_records["rec1"]
+        with pytest.raises(ValueError) as ee:
+            tt = coll.get_nearest_collocation_by_time_coverage_end({})
+        assert str(ee.value) == "Input records dict is empty."
 
 
 @pytest.mark.core
