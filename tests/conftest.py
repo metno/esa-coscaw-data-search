@@ -68,18 +68,18 @@ def s1filename():
 refs = [
     {
         "scheme": "OPENDAP:OPENDAP",
-        "url": ("https://thredds.met.no/thredds/dodsC/meps25epsarchive/2024/04/06/10/"
+        "url": ("https://thredds.met.no/INVALID/thredds/dodsC/meps25epsarchive/2024/04/06/10/"
                 "meps_mbr007_sfc_20240406T10Z.ncml")
     },
     {
         "scheme": "OGC:WMS",
-        "url": ("https://fastapi.s-enda.k8s.met.no/api/get_quicklook/2024/04/06/10/"
+        "url": ("https://fastapi.s-enda.k8s.met.no/INVALID/api/get_quicklook/2024/04/06/10/"
                 "meps_mbr007_sfc_20240406T10Z.ncml?service=WMS&version=1.3.0&request"
                 "=GetCapabilities?SERVICE=WMS&REQUEST=GetCapabilities")
     },
     {
         "scheme": "WWW:DOWNLOAD-1.0-http--download",
-        "url": ("https://thredds.met.no/thredds/fileServer/meps25epsarchive/2024/04/"
+        "url": ("https://thredds.met.no/INVALID/thredds/fileServer/meps25epsarchive/2024/04/"
                 "06/10/meps_mbr007_sfc_20240406T10Z.ncml")
     }
 ]

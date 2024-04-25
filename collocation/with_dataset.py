@@ -18,6 +18,7 @@ limitations under the License.
 """
 import os
 import netCDF4
+import logging
 import datetime
 
 import numpy as np
@@ -261,14 +262,13 @@ class Collocate(SearchCSW):
         return self._execute([fes.And(constraints)], endpoint=endpoint)
 
     @staticmethod
-    def get_time_coverage(record):
+    def get_time_coverage(odap):
         """ Return time_coverage_start and time_coverage_end of the
         given record converted to datetime.datetime objects.
 
         Note: the record does not contain proper times (except the
         date), so we need to read it from OPeNDAP - or don't we?
         """
-        odap = Collocate.get_odap_url(record)
         ds = netCDF4.Dataset(odap)
         start = parse(ds.time_coverage_start)
         end = parse(ds.time_coverage_end)
@@ -304,9 +304,18 @@ class Collocate(SearchCSW):
         if not bool(records):
             raise ValueError("Input records dict is empty.")
         for key, record in records.items():
-            tt = Collocate.get_time_coverage(record)
-            times = np.append(times, tt[index])
-            keys.append(key)
+            odap = Collocate.get_odap_url(record)
+            try:
+                self.assert_available(odap)
+            except ValueError as ee:
+                logging.debug(ee)
+            else:
+                tt = Collocate.get_time_coverage(odap)
+                times = np.append(times, tt[index])
+                keys.append(key)
+
+        if len(keys) == 0:
+            raise ValueError("No available datasets for the given search interval.")
 
         return records[keys[np.abs(times-self.time).argmin()]]
 

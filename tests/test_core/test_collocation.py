@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import pytest
+import logging
 import datetime
 
 from pytz import timezone
@@ -192,7 +193,13 @@ def testCollocate_get_odap_url_of_nearest(s1filename, csw_records, monkeypatch):
 
     with monkeypatch.context() as mp:
         smock = SelectMock()
-        smock.side_effect = [MockNcDataset(), MockDataset(), MockDataset2()]
+        smock.side_effect = [
+            MockNcDataset(),  # Init Collocate
+            MockDataset(),    # assert_available
+            MockDataset(),    # get_time_coverage
+            MockDataset2(),   # assert_available
+            MockDataset2()    # get_time_coverage
+        ]
         mp.setattr("collocation.with_dataset.netCDF4.Dataset", smock)
         mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
         coll = Collocate(s1filename)
@@ -301,7 +308,7 @@ def testCollocate_search_functions(s1filename, monkeypatch):
 def testCollocate_get_odap_url(csw_record):
     """ Test that the opendap url is returned.
     """
-    assert Collocate.get_odap_url(csw_record) == ("https://thredds.met.no/thredds/dodsC/"
+    assert Collocate.get_odap_url(csw_record) == ("https://thredds.met.no/INVALID/thredds/dodsC/"
                                                   "meps25epsarchive/2024/04/06/10/"
                                                   "meps_mbr007_sfc_20240406T10Z.ncml")
     csw_record.references = []
@@ -341,16 +348,28 @@ def testCollocate_get_time_coverage(csw_record, monkeypatch):
 
 
 @pytest.mark.core
-def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monkeypatch):
+def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monkeypatch, caplog):
     """ Test that the nearest record in time_coverage_* is returned.
     """
     class SelectMock(Mock):
         pass
 
+    caplog.set_level(logging.DEBUG)
+
     with monkeypatch.context() as mp:
         smock = SelectMock()
-        smock.side_effect = [MockNcDataset(), MockDataset(), MockDataset2(), MockDataset(),
-                             MockDataset2()]
+        smock.side_effect = [
+            MockNcDataset(),  # Init Collocate
+            MockDataset(),    # assert_available
+            MockDataset(),    # get_time_coverage
+            MockDataset2(),   # assert_available
+            MockDataset2(),   # get_time_coverage
+            MockDataset(),    # assert_available
+            MockDataset(),    # get_time_coverage
+            MockDataset2(),   # assert_available
+            MockDataset2(),   # get_time_coverage
+            MockNcDataset(),  # Init Collocate for testing _get_nearest_by_time
+        ]
         mp.setattr("collocation.with_dataset.netCDF4.Dataset", smock)
         mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
         coll = Collocate(s1filename)
@@ -361,6 +380,18 @@ def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monke
         with pytest.raises(ValueError) as ee:
             tt = coll.get_nearest_collocation_by_time_coverage_end({})
         assert str(ee.value) == "Input records dict is empty."
+
+        def raiseVErr():
+            raise ValueError("TEST")
+
+        # Test _get_nearest_by_time fails when urls (in csw_records)
+        # are invalid
+        coll = Collocate(s1filename)
+        mp.setattr("collocation.with_dataset.Collocate.assert_available", lambda *a, **k: raiseVErr())
+        with pytest.raises(ValueError) as ee:
+            recs = coll._get_nearest_by_time(csw_records, 0)
+        assert "No available datasets" in str(ee.value)
+        assert "TEST" in caplog.text
 
 
 @pytest.mark.core
