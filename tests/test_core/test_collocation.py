@@ -387,9 +387,11 @@ def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monke
         # Test _get_nearest_by_time fails when urls (in csw_records)
         # are invalid
         coll = Collocate(s1filename)
-        mp.setattr("collocation.with_dataset.Collocate.assert_available", lambda *a, **k: raiseVErr())
+        mp.setattr("collocation.with_dataset.Collocate.assert_available",
+                   lambda *a, **k: raiseVErr())
         with pytest.raises(ValueError) as ee:
             recs = coll._get_nearest_by_time(csw_records, 0)
+            assert recs == []
         assert "No available datasets" in str(ee.value)
         assert "TEST" in caplog.text
 
