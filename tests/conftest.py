@@ -32,7 +32,7 @@ import pytest
 #       the current source tree
 sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
-from collocation.config import Config  # noqa: E402
+from fadg.config import Config  # noqa: E402
 
 ##
 #  Directory Fixtures
