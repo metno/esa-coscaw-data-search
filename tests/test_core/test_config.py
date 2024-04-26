@@ -53,7 +53,7 @@ def testCoreConfig_example(rootDir, filesDir, monkeypatch):
     theConf.pkg_root = os.path.join(filesDir, "core")
     theConf.readConfig(configFile=None)
 
-    assert theConf.example == "some-example-text-in-test-config"
+    assert theConf.example == "some-example-text"
     assert theConf._validate_config() is True
 
     # Test that function fails if example attribute is not a string
