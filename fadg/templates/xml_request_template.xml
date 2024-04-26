@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<csw:GetRecords
+    xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
+    xmlns:gml="http://www.opengis.net/gml"
+    xmlns:ogc="http://www.opengis.net/ogc"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    service="CSW"
+    version="2.0.2"
+    resultType="results"
+    maxRecords="100"
+    outputFormat="application/xml"
+    outputSchema="http://www.opengis.net/cat/csw/2.0.2"
+    xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-discovery.xsd" >
+  <csw:Query typeNames="csw:Record">
+    <csw:ElementSetName>full</csw:ElementSetName>
+    <csw:Constraint version="1.1.0">
+      <ogc:Filter>
+        <ogc:{{ data["boolean_type"] }}>
+            {% if data["freetext"]["search"] %}
+          <ogc:PropertyIsLike wildCard="%" singleChar="\_" escapeChar="!">
+              <ogc:PropertyName>csw:AnyText</ogc:PropertyName>
+              <ogc:Literal>%{{ data["freetext"]["literal"] }}%</ogc:Literal>
+          </ogc:PropertyIsLike>
+            {% endif %}
+          <ogc:PropertyIsGreaterThanOrEqualTo>
+            <ogc:PropertyName>apiso:TempExtent_begin</ogc:PropertyName>
+            <ogc:Literal>{{ data["search_start"] }}</ogc:Literal>
+          </ogc:PropertyIsGreaterThanOrEqualTo>
+          <ogc:PropertyIsLessThanOrEqualTo>
+            <ogc:PropertyName>apiso:TempExtent_begin</ogc:PropertyName>
+            <ogc:Literal>{{ data["search_end"] }}</ogc:Literal>
+          </ogc:PropertyIsLessThanOrEqualTo>
+          <!-- We support BBOX filter relation "intersects" or "contains".. -->
+          <!-- "contains" used for points -->
+          <!-- "intersects" used for polygons -->
+            {% if data["geomtype"] == "Point" %}
+          <ogc:Contains>
+            <ogc:PropertyName>ows:BoundingBox</ogc:PropertyName>
+            <gml:Point>
+              <gml:pos srsDimension="2">{{ data["coords"] }}/gml:pos>
+            </gml:Point>
+          </ogc:Contains>
+            {% else %}
+          <ogc:Intersects>
+            <ogc:PropertyName>ows:BoundingBox</ogc:PropertyName>
+            <gml:Polygon>
+              <gml:exterior>
+                <gml:LinearRing>
+                  <gml:posList>{{ data["coords"] }}</gml:posList>
+                </gml:LinearRing>
+              </gml:exterior>
+            </gml:Polygon>
+          </ogc:Intersects>
+            {% endif %}
+        </ogc:{{ data["boolean_type"] }}>
+      </ogc:Filter>
+    </csw:Constraint>
+  </csw:Query>
+</csw:GetRecords>

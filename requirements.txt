@@ -1,2 +1,5 @@
+netCDF4
+owslib
 pyyaml
 python-dateutil
+xdg

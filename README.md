@@ -8,15 +8,20 @@ Tools to find data to be used in ESA COSCaW
 
 ```
 # import module
-from collocation import with_sar
+from fadg import find_and_collocate
 
-# Specify Sentinel-1 filename
-s1filename = '/lustre/storeC-ext/users/coscaw/sentinel-1/2020/01/S1A_IW_RAW__0SDV_20200103T055642_20200103T055714_030632_03828E_875E.zip'
+# Set dataset url
+url = "https://thredds.met.no/thredds/dodsC/remotesensingsatellite/polar-swath/2024/04/07/metopb-avhrr-20240407222827-20240407223536.nc"
 
-# Call function to get model urls matching Sentinel-1 
-norkyst_url, met_nordic_url = with_sar.get_odap(s1filename)
+# Initialize fadg object - this will find overlapping Norkyst800 datasets
+coll = find_and_collocate.NorKyst800(url)
+
+# Get url of nearest Norkyst800 dataset
+norkyst_url = coll.get_odap_url_of_nearest()
 
 ```
+
+Use other classes for other data types, e.g., `Meps` for Meps weather forecast data.
 
 ## Tests
 

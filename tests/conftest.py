@@ -20,11 +20,19 @@ import os
 import sys
 import pytest
 
+# This does not work for opendap, so it is omitted:
+#   import socket
+#
+#   class block_network(socket.socket):
+#       def __init__(self, *args, **kwargs):
+#           raise Exception("Network call blocked")
+#   socket.socket = block_network
+
 # Note: This line forces the test suite to import the package in
 #       the current source tree
 sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
-from collocation.config import Config  # noqa: E402
+from fadg.config import Config  # noqa: E402
 
 ##
 #  Directory Fixtures
@@ -47,6 +55,62 @@ def filesDir():
 ##
 #  Objects
 ##
+
+
+@pytest.fixture(scope="session")
+def s1filename():
+    # Sentinel-1 filename
+    return (
+        "sentinel-1/"
+        "S1B_IW_RAW__0SDV_20190107T171737_20190107T171810_014391_01AC8B_78F4.zip")
+
+
+refs = [
+    {
+        "scheme": "OPENDAP:OPENDAP",
+        "url": ("https://thredds.met.no/INVALID/thredds/dodsC/meps25epsarchive/2024/04/06/10/"
+                "meps_mbr007_sfc_20240406T10Z.ncml")
+    },
+    {
+        "scheme": "OGC:WMS",
+        "url": ("https://fastapi.s-enda.k8s.met.no/INVALID/api/get_quicklook/2024/04/06/10/"
+                "meps_mbr007_sfc_20240406T10Z.ncml?service=WMS&version=1.3.0&request"
+                "=GetCapabilities?SERVICE=WMS&REQUEST=GetCapabilities")
+    },
+    {
+        "scheme": "WWW:DOWNLOAD-1.0-http--download",
+        "url": ("https://thredds.met.no/INVALID/thredds/fileServer/meps25epsarchive/2024/04/"
+                "06/10/meps_mbr007_sfc_20240406T10Z.ncml")
+    }
+]
+
+
+@pytest.fixture(scope="session")
+def csw_record():
+    """ Fake csw record
+    """
+    class Record:
+        pass
+    record = Record()
+    record.references = refs
+    return record
+
+
+@pytest.fixture(scope="session")
+def csw_records():
+    """ Dict of fake csw records
+    """
+    class Record:
+        pass
+    rec1 = Record()
+    rec1.references = refs
+    rec2 = Record()
+    rec2.references = refs
+    records = {
+        "rec1": rec1,
+        "rec2": rec2,
+    }
+    return records
 
 
 @pytest.fixture(scope="function")
