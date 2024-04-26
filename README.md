@@ -8,13 +8,13 @@ Tools to find data to be used in ESA COSCaW
 
 ```
 # import module
-from collocation import with_dataset
+from fadg import find_and_collocate
 
 # Set dataset url
 url = "https://thredds.met.no/thredds/dodsC/remotesensingsatellite/polar-swath/2024/04/07/metopb-avhrr-20240407222827-20240407223536.nc"
 
-# Initialize collocation object - this will find overlapping Norkyst800 datasets
-coll = with_dataset.NorKyst800(url)
+# Initialize fadg object - this will find overlapping Norkyst800 datasets
+coll = find_and_collocate.NorKyst800(url)
 
 # Get url of nearest Norkyst800 dataset
 norkyst_url = coll.get_odap_url_of_nearest()

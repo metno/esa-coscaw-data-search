@@ -24,13 +24,13 @@ from pytz import timezone
 from unittest.mock import Mock
 from dateutil.parser import parse
 
-from collocation.with_dataset import SearchCSW
-from collocation.with_dataset import Collocate
-from collocation.with_dataset import METNordic
-from collocation.with_dataset import NorKyst800
-from collocation.with_dataset import AromeArctic
-from collocation.with_dataset import Meps
-from collocation.with_dataset import WeatherForecast
+from fadg.find_and_collocate import SearchCSW
+from fadg.find_and_collocate import Collocate
+from fadg.find_and_collocate import METNordic
+from fadg.find_and_collocate import NorKyst800
+from fadg.find_and_collocate import AromeArctic
+from fadg.find_and_collocate import Meps
+from fadg.find_and_collocate import WeatherForecast
 
 
 refs = [
@@ -153,8 +153,8 @@ def testCollocate__execute(s1filename, monkeypatch):
     returns a dict.
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = Collocate(s1filename)
         records = coll._execute([])
         assert records["rec1"].references == refs
@@ -171,14 +171,14 @@ def testCollocate__set_dataset_date(s1filename, monkeypatch):
     with monkeypatch.context() as mp:
         smock = SelectMock()
         smock.side_effect = [OSError, MockNcDataset()]
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", smock)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", smock)
         coll = Collocate(s1filename)
         assert coll.time == tt
 
     with monkeypatch.context() as mp:
         smock = SelectMock()
         smock.side_effect = [OSError, MockNcDataset2()]
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", smock)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", smock)
         coll = Collocate(s1filename)
         assert coll.time == tt
 
@@ -200,8 +200,8 @@ def testCollocate_get_odap_url_of_nearest(s1filename, csw_records, monkeypatch):
             MockDataset2(),   # assert_available
             MockDataset2()    # get_time_coverage
         ]
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", smock)
-        mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", smock)
+        mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
         coll = Collocate(s1filename)
         tt = coll.get_odap_url_of_nearest()
         assert tt == ("https://thredds.met.no/thredds/dodsC/meps25epsarchive/2024/04/06/10/"
@@ -225,8 +225,8 @@ def testCollocate_get_collocations(s1filename, monkeypatch):
     """ Test that get_collocations returns a dict of records.
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = Collocate(s1filename)
         records = coll.get_collocations()
         assert records["rec1"].references == refs
@@ -237,7 +237,7 @@ def testCollocate_Init(s1filename, monkeypatch):
     """ Test initialization of Collocate.
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = Collocate(s1filename)
         tt = datetime.datetime(2019, 1, 7, 17, 17, 37, tzinfo=timezone("utc"))
 
@@ -275,8 +275,8 @@ def testCollocate_set_csw_connection(s1filename, monkeypatch):
     connection to a CSW service.
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = Collocate(s1filename)
         coll._set_csw_connection()
         assert coll.conn_csw.test == "test"
@@ -292,7 +292,7 @@ def testCollocate_search_functions(s1filename, monkeypatch):
     understand owslib..
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = Collocate(s1filename)
         ss = coll._get_title_search("Arome-Arctic")
         assert ss.toXML().getchildren()[0].text == "dc:title"
@@ -341,7 +341,7 @@ def testCollocate_get_time_coverage(csw_record, monkeypatch):
     are returned.
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockDataset)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockDataset)
         start, end = Collocate.get_time_coverage(csw_record)
         assert start == parse("2024-04-06T10:00:00Z")
         assert end == parse("2024-04-06T10:02:00Z")
@@ -370,8 +370,8 @@ def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monke
             MockDataset2(),   # get_time_coverage
             MockNcDataset(),  # Init Collocate for testing _get_nearest_by_time
         ]
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", smock)
-        mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", smock)
+        mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
         coll = Collocate(s1filename)
         tt = coll.get_nearest_collocation_by_time_coverage_start(csw_records)
         assert tt == csw_records["rec1"]
@@ -387,7 +387,7 @@ def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monke
         # Test _get_nearest_by_time fails when urls (in csw_records)
         # are invalid
         coll = Collocate(s1filename)
-        mp.setattr("collocation.with_dataset.Collocate.assert_available",
+        mp.setattr("fadg.find_and_collocate.Collocate.assert_available",
                    lambda *a, **k: raiseVErr())
         with pytest.raises(ValueError) as ee:
             recs = coll._get_nearest_by_time(csw_records, 0)
@@ -401,8 +401,8 @@ def testNorKyst800(s1filename, monkeypatch):
     """ Test NorKyst800.
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = NorKyst800(s1filename)
         records = coll.get_collocations()
         assert records["rec1"].references == refs
@@ -417,8 +417,8 @@ def testMeps(s1filename, csw_records, monkeypatch):
     """ Test Meps
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = Meps(s1filename)
         records = coll.get_collocations()
         assert records["rec1"].references == refs
@@ -429,8 +429,8 @@ def testAromeArctic(s1filename, monkeypatch):
     """ Test AromeArctic
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = AromeArctic(s1filename)
         records = coll.get_collocations()
         assert records["rec1"].references == refs
@@ -441,14 +441,14 @@ def testMETNordic(s1filename, monkeypatch):
     """ Test METNordic
     """
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.CatalogueServiceWeb", MockCSW)
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = METNordic(s1filename)
         records = coll.get_collocations()
         assert records["rec1"].references == refs
 
     with monkeypatch.context() as mp:
-        mp.setattr("collocation.with_dataset.netCDF4.Dataset", MockNcDataset)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockNcDataset)
         coll = METNordic(s1filename)
         url = coll.get_odap_url_of_nearest()
         assert url == ("https://thredds.met.no/thredds/dodsC/metpparchivev3/"

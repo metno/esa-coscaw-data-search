@@ -21,7 +21,7 @@ import pytest
 
 from tools import causeOSError
 
-from collocation.config import Config
+from fadg.config import Config
 
 
 @pytest.mark.core

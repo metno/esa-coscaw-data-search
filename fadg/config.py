@@ -1,6 +1,6 @@
 """
-Collocation : Main Config
-=========================
+fadg : Main Config
+==================
 
 Copyright 2021 MET Norway
 
@@ -69,7 +69,7 @@ class Config():
 
     def _read_core(self):
         """Read config values under 'dmci'."""
-        conf = self._raw_conf.get("collocation", {})
+        conf = self._raw_conf.get("fadg", {})
 
         self.example = conf.get("example", self.example)
 
