@@ -32,7 +32,7 @@ python -m pytest -vv
 
 To add coverage, and to optionally generate a coverage report in HTML, run:
 ```bash
-python -m pytest -vv --cov=dmci --cov-report=term-missing --cov-report=html
+python -m pytest -vv --cov=fadg --cov-report=term-missing --cov-report=html
 ```
 Coverage requires the `pytest-cov` package.
 
