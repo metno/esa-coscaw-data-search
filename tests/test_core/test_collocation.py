@@ -106,6 +106,46 @@ class MockNcDataset2:
         return None
 
 
+class MockDataset1:
+
+    def __init__(self, *args, **kwargs):
+        self.time_coverage_start = "2024-04-06T10:00:00Z"
+        self.time_coverage_end = "2024-04-06T10:02:00Z"
+
+    def close(self):
+        return None
+
+
+class MockDataset2:
+
+    def __init__(self, *args, **kwargs):
+        self.time_coverage_start = "2024-04-07T10:00:00Z"
+        self.time_coverage_end = "2024-04-07T10:02:00Z"
+
+    def close(self):
+        return None
+
+
+class MockDataset3:
+
+    def __init__(self, *args, **kwargs):
+        self.time_coverage_start = "2019-01-06T10:00:00Z"
+        self.time_coverage_end = "2019-01-06T10:02:00Z"
+
+    def close(self):
+        return None
+
+
+class MockDataset4:
+
+    def __init__(self, *args, **kwargs):
+        self.time_coverage_start = "2019-01-07T10:00:00Z"
+        self.time_coverage_end = "2019-01-07T10:02:00Z"
+
+    def close(self):
+        return None
+
+
 class Fail:
 
     def __init__(self, *args, **kwargs):
@@ -195,8 +235,8 @@ def testCollocate_get_odap_url_of_nearest(s1filename, csw_records, monkeypatch):
         smock = SelectMock()
         smock.side_effect = [
             MockNcDataset(),  # Init Collocate
-            MockDataset(),    # assert_available
-            MockDataset(),    # get_time_coverage
+            MockDataset1(),    # assert_available
+            MockDataset1(),    # get_time_coverage
             MockDataset2(),   # assert_available
             MockDataset2()    # get_time_coverage
         ]
@@ -315,40 +355,21 @@ def testCollocate_get_odap_url(csw_record):
     assert Collocate.get_odap_url(csw_record) is None
 
 
-class MockDataset:
-
-    def __init__(self, *args, **kwargs):
-        self.time_coverage_start = "2024-04-06T10:00:00Z"
-        self.time_coverage_end = "2024-04-06T10:02:00Z"
-
-    def close(self):
-        return None
-
-
-class MockDataset2:
-
-    def __init__(self, *args, **kwargs):
-        self.time_coverage_start = "2024-04-07T10:00:00Z"
-        self.time_coverage_end = "2024-04-07T10:02:00Z"
-
-    def close(self):
-        return None
-
-
 @pytest.mark.core
 def testCollocate_get_time_coverage(csw_record, monkeypatch):
     """ Test that netCDF4.Dataset is called, and that correct times
     are returned.
     """
     with monkeypatch.context() as mp:
-        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockDataset)
+        mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", MockDataset1)
         start, end = Collocate.get_time_coverage(csw_record)
         assert start == parse("2024-04-06T10:00:00Z")
         assert end == parse("2024-04-06T10:02:00Z")
 
 
 @pytest.mark.core
-def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monkeypatch, caplog):
+def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, csw_4_records,
+                                                  monkeypatch, caplog):
     """ Test that the nearest record in time_coverage_* is returned.
     """
     class SelectMock(Mock):
@@ -359,33 +380,90 @@ def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, monke
     with monkeypatch.context() as mp:
         smock = SelectMock()
         smock.side_effect = [
-            MockNcDataset(),  # Init Collocate
-            MockDataset(),    # assert_available
-            MockDataset(),    # get_time_coverage
+            # Init Collocate
+            MockNcDataset(),
+            # Test get_nearest_collocation_by_time_coverage_start
+            MockDataset1(),    # assert_available
+            MockDataset1(),    # get_time_coverage
             MockDataset2(),   # assert_available
             MockDataset2(),   # get_time_coverage
-            MockDataset(),    # assert_available
-            MockDataset(),    # get_time_coverage
+            # Test get_nearest_collocation_by_time_coverage_end
+            MockDataset1(),    # assert_available
+            MockDataset1(),    # get_time_coverage
             MockDataset2(),   # assert_available
             MockDataset2(),   # get_time_coverage
-            MockNcDataset(),  # Init Collocate for testing _get_nearest_by_time
+            # Test failing _get_nearest_by_time(csw_records, 0, rel=1)
+            MockDataset1(),    # assert_available
+            MockDataset1(),    # get_time_coverage
+            MockDataset2(),   # assert_available
+            MockDataset2(),   # get_time_coverage
+            # Test failing _get_nearest_by_time(csw_records, 0, rel=2)
+            MockDataset3(),    # assert_available
+            MockDataset3(),    # get_time_coverage
+            MockDataset4(),   # assert_available
+            MockDataset4(),   # get_time_coverage
+            # Test _get_nearest_by_time(csw_4_records, 0, rel=1)
+            MockDataset1(),    # assert_available
+            MockDataset1(),    # get_time_coverage
+            MockDataset2(),   # assert_available
+            MockDataset2(),   # get_time_coverage
+            MockDataset3(),    # assert_available
+            MockDataset3(),    # get_time_coverage
+            MockDataset4(),   # assert_available
+            MockDataset4(),   # get_time_coverage
+            # Test _get_nearest_by_time(csw_4_records, 0, rel=2)
+            MockDataset1(),    # assert_available
+            MockDataset1(),    # get_time_coverage
+            MockDataset2(),   # assert_available
+            MockDataset2(),   # get_time_coverage
+            MockDataset3(),    # assert_available
+            MockDataset3(),    # get_time_coverage
+            MockDataset4(),   # assert_available
+            MockDataset4(),   # get_time_coverage
+            # Test coll._get_nearest_by_time(csw_records, 0, rel=4)
+            MockDataset1(),    # assert_available
+            MockDataset1(),    # get_time_coverage
+            MockDataset2(),   # assert_available
+            MockDataset2(),   # get_time_coverage
+            # Init Collocate for testing _get_nearest_by_time
+            MockNcDataset(),
         ]
         mp.setattr("fadg.find_and_collocate.netCDF4.Dataset", smock)
         mp.setattr("fadg.find_and_collocate.CatalogueServiceWeb", MockCSW)
+        # Init Collocate
         coll = Collocate(s1filename)
+        # assert_available and get_time_coverage
         tt = coll.get_nearest_collocation_by_time_coverage_start(csw_records)
         assert tt == csw_records["rec1"]
+        # assert_available and get_time_coverage
         tt = coll.get_nearest_collocation_by_time_coverage_end(csw_records)
         assert tt == csw_records["rec1"]
         with pytest.raises(ValueError) as ee:
+            # assert_available and get_time_coverage
             tt = coll.get_nearest_collocation_by_time_coverage_end({})
         assert str(ee.value) == "Input records dict is empty."
+        
+        with pytest.raises(ValueError) as ee:
+            rec = coll._get_nearest_by_time(csw_records, 0, rel=1)
+        assert "No available datasets before" in str(ee.value)
+        with pytest.raises(ValueError) as ee:
+            rec = coll._get_nearest_by_time(csw_records, 0, rel=2)
+        assert "No available datasets after" in str(ee.value)
+        rec = coll._get_nearest_by_time(csw_4_records, 0, rel=1)
+        assert rec.time_coverage_start == "2019-01-07T10:00:00Z"
+        rec = coll._get_nearest_by_time(csw_4_records, 0, rel=2)
+        assert rec.time_coverage_start == "2024-04-06T10:00:00Z"
+
+        with pytest.raises(ValueError) as ee:
+            coll._get_nearest_by_time(csw_records, 0, rel=4)
+        assert "rel must be 0, 1 or 2" == str(ee.value)
 
         def raiseVErr():
             raise ValueError("TEST")
 
         # Test _get_nearest_by_time fails when urls (in csw_records)
         # are invalid
+        # Init Collocate
         coll = Collocate(s1filename)
         mp.setattr("fadg.find_and_collocate.Collocate.assert_available",
                    lambda *a, **k: raiseVErr())

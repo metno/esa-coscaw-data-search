@@ -286,7 +286,7 @@ class Collocate(SearchCSW):
             raise ValueError("The archive file %s is not available. Try another dataset." % url)
         return None
 
-    def _get_nearest_by_time(self, records, index):
+    def _get_nearest_by_time(self, records, index, rel=0):
         """ Returns the record that is closest to self.time by given
         index. The index indicates either time_coverage_start (0) or
         time_coverage_end (1).
@@ -298,6 +298,12 @@ class Collocate(SearchCSW):
         index : int (0 or 1)
             0 for searching by time_coverage_start and 1 for searching
             by time_coverage_end
+        rel : int (0, 1, or 2)
+            Indicates the relative position in time between the two
+            datasets. If rel=0, the search will cover both before and
+            after Collocate.time. If rel=1, the search will cover
+            times before Collocate.time. If rel=2, the search will
+            cover times after Collocate.time.
         """
         times = np.array([])
         keys = []
@@ -317,28 +323,48 @@ class Collocate(SearchCSW):
         if len(keys) == 0:
             raise ValueError("No available datasets for the given search interval.")
 
-        return records[keys[np.abs(times-self.time).argmin()]]
+        index = None
+        delta = times - self.time
+        if rel == 0:
+            index = np.abs(delta).argmin()
+        if rel == 1:
+            if not (delta < datetime.timedelta(0)).any():
+                raise ValueError("No available datasets before %s." % self.time.isoformat())
+            dm = delta
+            dm[dm > datetime.timedelta(0)] = delta.min()
+            index = dm.argmax()
+        if rel == 2:
+            if not (delta > datetime.timedelta(0)).any():
+                raise ValueError("No available datasets after %s." % self.time.isoformat())
+            dm = delta
+            dm[dm < datetime.timedelta(0)] = delta.max()
+            index = dm.argmin()
+        if rel not in [0, 1, 2]:
+            raise ValueError("rel must be 0, 1 or 2")
 
-    def get_nearest_collocation_by_time_coverage_start(self, records):
+        return records[keys[index]]
+
+    def get_nearest_collocation_by_time_coverage_start(self, records, **kwargs):
         """ Returns the record that has time_coverage_start closest to
         self.time.
         """
-        return self._get_nearest_by_time(records, 0)
+        return self._get_nearest_by_time(records, 0, **kwargs)
 
-    def get_nearest_collocation_by_time_coverage_end(self, records):
+    def get_nearest_collocation_by_time_coverage_end(self, records, **kwargs):
         """ Returns the record that has time_coverage_end closest to
         self.time.
         """
-        return self._get_nearest_by_time(records, 1)
+        return self._get_nearest_by_time(records, 1, **kwargs)
 
     def get_odap_url_of_nearest(self, *args, **kwargs):
         """ Returns the OPeNDAP url of the nearest collocated
         dataset.
         """
         url = None
+        rel = kwargs.pop("rel", 0)
         records = self.get_collocations(*args, **kwargs)
         if bool(records):
-            nearest = self.get_nearest_collocation_by_time_coverage_start(records)
+            nearest = self.get_nearest_collocation_by_time_coverage_start(records, rel=rel)
             url = Collocate.get_odap_url(nearest)
         return url
 
