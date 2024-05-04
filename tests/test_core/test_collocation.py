@@ -442,7 +442,7 @@ def testCollocate_get_nearest_collocation_by_time(s1filename, csw_records, csw_4
             # assert_available and get_time_coverage
             tt = coll.get_nearest_collocation_by_time_coverage_end({})
         assert str(ee.value) == "Input records dict is empty."
-        
+
         with pytest.raises(ValueError) as ee:
             rec = coll._get_nearest_by_time(csw_records, 0, rel=1)
         assert "No available datasets before" in str(ee.value)
