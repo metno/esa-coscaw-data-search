@@ -113,6 +113,39 @@ def csw_records():
     return records
 
 
+@pytest.fixture(scope="session")
+def csw_4_records():
+    """ Dict of fake csw records
+    """
+    class Record:
+        pass
+    rec1 = Record()
+    rec1.references = refs
+    # Nearest after
+    rec1.time_coverage_start = "2024-04-06T10:00:00Z"
+    rec1.time_coverage_end = "2024-04-06T10:02:00Z"
+    rec2 = Record()
+    rec2.references = refs
+    rec2.time_coverage_start = "2024-04-07T10:00:00Z"
+    rec2.time_coverage_end = "2024-04-07T10:02:00Z"
+    rec3 = Record()
+    rec3.references = refs
+    rec3.time_coverage_start = "2019-01-06T10:00:00Z"
+    rec3.time_coverage_end = "2019-01-06T10:02:00Z"
+    rec4 = Record()
+    rec4.references = refs
+    # Nearest before
+    rec4.time_coverage_start = "2019-01-07T10:00:00Z"
+    rec4.time_coverage_end = "2019-01-07T10:02:00Z"
+    records = {
+        "rec1": rec1,
+        "rec2": rec2,
+        "rec3": rec3,
+        "rec4": rec4,
+    }
+    return records
+
+
 @pytest.fixture(scope="function")
 def tmpConf(monkeypatch):
     """Create a temporary configuration object."""
