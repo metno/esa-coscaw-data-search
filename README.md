@@ -4,13 +4,23 @@
 # esa-coscaw-data-search
 Tools to find data to be used in ESA COSCaW
 
-## Example: Get OPeNDAP urls to Norkyst800 and MET Nordic
+## Examples
+
+### Find datasets matching a time and text string
 
 ```
-# import module
+from fadg.find_and_collocate import SearchCSW
+
+# Find all SAR data dt/2 hours back in time from now:
+sar = SearchCSW(time=time, dt=dt, text="SAR", endpoint="https://data.csw.met.no/csw")
+```
+
+### Get OPeNDAP urls to Norkyst800 and MET Nordic
+
+```
 from fadg import find_and_collocate
 
-# Set dataset url
+# Specify a dataset url
 url = "https://thredds.met.no/thredds/dodsC/remotesensingsatellite/polar-swath/2024/04/07/metopb-avhrr-20240407222827-20240407223536.nc"
 
 # Initialize fadg object - this will find overlapping Norkyst800 datasets
